@@ -1,17 +1,17 @@
-import ReactMarkdown from "react-markdown";
+import { SolidMarkdown } from "solid-markdown";
 import remarkGfm from "remark-gfm";
 
 type MarkdownProps = {
   value: string;
-  className?: string;
+  class?: string;
   codeBlock?: boolean;
 };
 
-export function Markdown({ value, className, codeBlock }: MarkdownProps) {
-  const content = codeBlock ? `\`\`\`\n${value}\n\`\`\`` : value;
+export function Markdown(props: MarkdownProps) {
+  const content = () => props.codeBlock ? `\`\`\`\n${props.value}\n\`\`\`` : props.value;
   return (
-    <div className={className}>
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+    <div class={props.class}>
+      <SolidMarkdown remarkPlugins={[remarkGfm]}>{content()}</SolidMarkdown>
     </div>
   );
 }

@@ -1,8 +1,8 @@
-import { useEffect } from "react";
+import { createEffect, onCleanup } from "solid-js";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
-export function useWindowDrag(targetId: string) {
-  useEffect(() => {
+export function setupWindowDrag(targetId: string): void {
+  createEffect(() => {
     const el = document.getElementById(targetId);
     if (!el) {
       return;
@@ -16,8 +16,9 @@ export function useWindowDrag(targetId: string) {
     };
 
     el.addEventListener("mousedown", handler);
-    return () => {
+
+    onCleanup(() => {
       el.removeEventListener("mousedown", handler);
-    };
-  }, [targetId]);
+    });
+  });
 }

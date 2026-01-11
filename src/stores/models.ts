@@ -1,44 +1,54 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createSignal, createMemo, createEffect } from "solid-js";
 import type { DebugEntry, ModelOption, WorkspaceInfo } from "../types";
 import { getModelList } from "../services/tauri";
 
-type UseModelsOptions = {
-  activeWorkspace: WorkspaceInfo | null;
-  onDebug?: (entry: DebugEntry) => void;
+export type ModelsStore = {
+  models: () => ModelOption[];
+  selectedModel: () => ModelOption | null;
+  selectedModelId: () => string | null;
+  setSelectedModelId: (id: string | null) => void;
+  reasoningOptions: () => string[];
+  selectedEffort: () => string | null;
+  setSelectedEffort: (effort: string | null) => void;
+  refreshModels: () => Promise<void>;
 };
 
-export function useModels({ activeWorkspace, onDebug }: UseModelsOptions) {
-  const [models, setModels] = useState<ModelOption[]>([]);
-  const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
-  const [selectedEffort, setSelectedEffort] = useState<string | null>(null);
-  const lastFetchedWorkspaceId = useRef<string | null>(null);
-  const inFlight = useRef(false);
+export function createModelsStore(options: {
+  activeWorkspace: () => WorkspaceInfo | null;
+  onDebug?: (entry: DebugEntry) => void;
+}): ModelsStore {
+  const [models, setModels] = createSignal<ModelOption[]>([]);
+  const [selectedModelId, setSelectedModelId] = createSignal<string | null>(null);
+  const [selectedEffort, setSelectedEffort] = createSignal<string | null>(null);
+  let lastFetchedWorkspaceId: string | null = null;
+  let inFlight = false;
 
-  const workspaceId = activeWorkspace?.id ?? null;
-  const isConnected = Boolean(activeWorkspace?.connected);
+  const { activeWorkspace, onDebug } = options;
 
-  const selectedModel = useMemo(
-    () => models.find((model) => model.id === selectedModelId) ?? null,
-    [models, selectedModelId],
+  const selectedModel = createMemo(
+    () => models().find((model) => model.id === selectedModelId()) ?? null
   );
 
-  const reasoningOptions = useMemo(() => {
-    if (!selectedModel) {
+  const reasoningOptions = createMemo(() => {
+    const model = selectedModel();
+    if (!model) {
       return [];
     }
-    return selectedModel.supportedReasoningEfforts.map(
-      (effort) => effort.reasoningEffort,
-    );
-  }, [selectedModel]);
+    return model.supportedReasoningEfforts.map((effort) => effort.reasoningEffort);
+  });
 
-  const refreshModels = useCallback(async () => {
+  async function refreshModels(): Promise<void> {
+    const workspace = activeWorkspace();
+    const workspaceId = workspace?.id ?? null;
+    const isConnected = Boolean(workspace?.connected);
+
     if (!workspaceId || !isConnected) {
       return;
     }
-    if (inFlight.current) {
+    if (inFlight) {
       return;
     }
-    inFlight.current = true;
+    inFlight = true;
     onDebug?.({
       id: `${Date.now()}-client-model-list`,
       timestamp: Date.now(),
@@ -66,18 +76,18 @@ export function useModels({ activeWorkspace, onDebug }: UseModelsOptions) {
           : Array.isArray(item.supported_reasoning_efforts)
             ? item.supported_reasoning_efforts.map((effort: any) => ({
                 reasoningEffort: String(
-                  effort.reasoningEffort ?? effort.reasoning_effort ?? "",
+                  effort.reasoningEffort ?? effort.reasoning_effort ?? ""
                 ),
                 description: String(effort.description ?? ""),
               }))
             : [],
         defaultReasoningEffort: String(
-          item.defaultReasoningEffort ?? item.default_reasoning_effort ?? "",
+          item.defaultReasoningEffort ?? item.default_reasoning_effort ?? ""
         ),
         isDefault: Boolean(item.isDefault ?? item.is_default ?? false),
       }));
       setModels(data);
-      lastFetchedWorkspaceId.current = workspaceId;
+      lastFetchedWorkspaceId = workspaceId;
       const preferredModel =
         data.find((model) => model.model === "gpt-5.2-codex") ?? null;
       const defaultModel =
@@ -95,34 +105,40 @@ export function useModels({ activeWorkspace, onDebug }: UseModelsOptions) {
         payload: error instanceof Error ? error.message : String(error),
       });
     } finally {
-      inFlight.current = false;
+      inFlight = false;
     }
-  }, [isConnected, onDebug, workspaceId]);
+  }
 
-  useEffect(() => {
+  // Auto-refresh when workspace changes
+  createEffect(() => {
+    const workspace = activeWorkspace();
+    const workspaceId = workspace?.id ?? null;
+    const isConnected = Boolean(workspace?.connected);
+
     if (!workspaceId || !isConnected) {
       return;
     }
-    if (lastFetchedWorkspaceId.current === workspaceId && models.length > 0) {
+    if (lastFetchedWorkspaceId === workspaceId && models().length > 0) {
       return;
     }
     refreshModels();
-  }, [isConnected, models.length, refreshModels, workspaceId]);
+  });
 
-  useEffect(() => {
-    if (!selectedModel) {
+  // Reset effort when model changes
+  createEffect(() => {
+    const model = selectedModel();
+    if (!model) {
       return;
     }
+    const effort = selectedEffort();
     if (
-      selectedEffort &&
-      selectedModel.supportedReasoningEfforts.some(
-        (effort) => effort.reasoningEffort === selectedEffort,
-      )
+      effort &&
+      model.supportedReasoningEfforts.some((e) => e.reasoningEffort === effort)
     ) {
       return;
     }
-    setSelectedEffort(selectedModel.defaultReasoningEffort ?? null);
-  }, [selectedEffort, selectedModel]);
+    setSelectedEffort(model.defaultReasoningEffort ?? null);
+  });
 
   return {
     models,

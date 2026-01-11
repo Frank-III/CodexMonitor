@@ -1,40 +1,41 @@
+import { For, Show, type Accessor } from "solid-js";
 import type { ApprovalRequest } from "../types";
 
 type ApprovalsProps = {
-  approvals: ApprovalRequest[];
+  approvals: Accessor<ApprovalRequest[]>;
   onDecision: (request: ApprovalRequest, decision: "accept" | "decline") => void;
 };
 
-export function Approvals({ approvals, onDecision }: ApprovalsProps) {
-  if (!approvals.length) {
-    return null;
-  }
-
+export function Approvals(props: ApprovalsProps) {
   return (
-    <div className="approvals">
-      <div className="approvals-title">Approvals</div>
-      {approvals.map((request) => (
-        <div key={request.request_id} className="approval-card">
-          <div className="approval-method">{request.method}</div>
-          <div className="approval-body">
-            {JSON.stringify(request.params, null, 2)}
-          </div>
-          <div className="approval-actions">
-            <button
-              className="secondary"
-              onClick={() => onDecision(request, "decline")}
-            >
-              Decline
-            </button>
-            <button
-              className="primary"
-              onClick={() => onDecision(request, "accept")}
-            >
-              Approve
-            </button>
-          </div>
-        </div>
-      ))}
-    </div>
+    <Show when={props.approvals().length}>
+      <div class="approvals">
+        <div class="approvals-title">Approvals</div>
+        <For each={props.approvals()}>
+          {(request) => (
+            <div class="approval-card">
+              <div class="approval-method">{request.method}</div>
+              <div class="approval-body">
+                {JSON.stringify(request.params, null, 2)}
+              </div>
+              <div class="approval-actions">
+                <button
+                  class="secondary"
+                  onClick={() => props.onDecision(request, "decline")}
+                >
+                  Decline
+                </button>
+                <button
+                  class="primary"
+                  onClick={() => props.onDecision(request, "accept")}
+                >
+                  Approve
+                </button>
+              </div>
+            </div>
+          )}
+        </For>
+      </div>
+    </Show>
   );
 }

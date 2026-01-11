@@ -1,17 +1,17 @@
-import { FileIcon, defaultStyles } from "react-file-icon";
+import { For, Show, type Accessor } from "solid-js";
 
 type GitDiffPanelProps = {
-  branchName: string;
-  totalAdditions: number;
-  totalDeletions: number;
-  fileStatus: string;
-  error?: string | null;
-  files: {
+  branchName: Accessor<string>;
+  totalAdditions: Accessor<number>;
+  totalDeletions: Accessor<number>;
+  fileStatus: Accessor<string>;
+  error: Accessor<string | null | undefined>;
+  files: Accessor<{
     path: string;
     status: string;
     additions: number;
     deletions: number;
-  }[];
+  }[]>;
 };
 
 function splitPath(path: string) {
@@ -30,51 +30,50 @@ function extensionForPath(path: string) {
   return parts[parts.length - 1].toLowerCase();
 }
 
-export function GitDiffPanel({
-  branchName,
-  totalAdditions,
-  totalDeletions,
-  fileStatus,
-  error,
-  files,
-}: GitDiffPanelProps) {
+export function GitDiffPanel(props: GitDiffPanelProps) {
   return (
-    <aside className="diff-panel">
-      <div className="diff-header">
+    <aside class="diff-panel">
+      <div class="diff-header">
         <span>Git Diff</span>
-        <span className="diff-totals">
-          +{totalAdditions} / -{totalDeletions}
+        <span class="diff-totals">
+          +{props.totalAdditions()} / -{props.totalDeletions()}
         </span>
       </div>
-      <div className="diff-status">{fileStatus}</div>
-      <div className="diff-branch">{branchName || "unknown"}</div>
-      <div className="diff-list">
-        {error && <div className="diff-error">{error}</div>}
-        {!error && !files.length && (
-          <div className="diff-empty">No changes detected.</div>
-        )}
-        {files.map((file) => {
-          const { name, dir } = splitPath(file.path);
-          const extension = extensionForPath(file.path);
-          const style = extension ? defaultStyles[extension] : undefined;
-          return (
-            <div key={file.path} className="diff-row">
-              <span className="diff-icon" aria-hidden>
-                <FileIcon extension={extension || "file"} {...style} />
-              </span>
-              <div className="diff-file">
-                <div className="diff-path">
-                  <span>{name}</span>
-                  <span className="diff-counts-inline">
-                    <span className="diff-add">+{file.additions}</span>
-                    <span className="diff-sep">/</span>
-                    <span className="diff-del">-{file.deletions}</span>
-                  </span>
+      <div class="diff-status">{props.fileStatus()}</div>
+      <div class="diff-branch">{props.branchName() || "unknown"}</div>
+      <div class="diff-list">
+        <Show when={props.error()}>
+          <div class="diff-error">{props.error()}</div>
+        </Show>
+        <Show when={!props.error() && !props.files().length}>
+          <div class="diff-empty">No changes detected.</div>
+        </Show>
+        <For each={props.files()}>
+          {(file) => {
+            const { name, dir } = splitPath(file.path);
+            const extension = extensionForPath(file.path);
+            return (
+              <div class="diff-row">
+                <span class="diff-icon" aria-hidden>
+                  <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
+                    <rect x="4" y="2" width="16" height="20" rx="2" stroke="currentColor" stroke-width="1.5" />
+                    <path d="M8 7h8M8 11h8M8 15h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                  </svg>
+                </span>
+                <div class="diff-file">
+                  <div class="diff-path">
+                    <span>{name}</span>
+                    <span class="diff-counts-inline">
+                      <span class="diff-add">+{file.additions}</span>
+                      <span class="diff-sep">/</span>
+                      <span class="diff-del">-{file.deletions}</span>
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          }}
+        </For>
       </div>
     </aside>
   );

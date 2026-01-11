@@ -1,191 +1,185 @@
+import { createSignal, For, Show, type Accessor } from "solid-js";
 import type { ThreadSummary, WorkspaceInfo } from "../types";
-import { useState } from "react";
 
 type SidebarProps = {
-  workspaces: WorkspaceInfo[];
-  threadsByWorkspace: Record<string, ThreadSummary[]>;
-  threadStatusById: Record<string, { isProcessing: boolean; hasUnread: boolean }>;
-  activeWorkspaceId: string | null;
-  activeThreadId: string | null;
+  workspaces: Accessor<WorkspaceInfo[]>;
+  threadsByWorkspace: Accessor<Record<string, ThreadSummary[]>>;
+  threadStatusById: Accessor<Record<string, { isProcessing: boolean; hasUnread: boolean }>>;
+  activeWorkspaceId: Accessor<string | null>;
+  activeThreadId: Accessor<string | null>;
   onAddWorkspace: () => void;
-  onSelectWorkspace: (id: string) => void;
+  onSelectWorkspace: (id: string | null) => void;
   onConnectWorkspace: (workspace: WorkspaceInfo) => void;
   onAddAgent: (workspace: WorkspaceInfo) => void;
   onSelectThread: (workspaceId: string, threadId: string) => void;
   onDeleteThread: (workspaceId: string, threadId: string) => void;
 };
 
-export function Sidebar({
-  workspaces,
-  threadsByWorkspace,
-  threadStatusById,
-  activeWorkspaceId,
-  activeThreadId,
-  onAddWorkspace,
-  onSelectWorkspace,
-  onConnectWorkspace,
-  onAddAgent,
-  onSelectThread,
-  onDeleteThread,
-}: SidebarProps) {
-  const [menuOpen, setMenuOpen] = useState<string | null>(null);
-  const [expandedWorkspaces, setExpandedWorkspaces] = useState(
-    new Set<string>(),
+export function Sidebar(props: SidebarProps) {
+  const [menuOpen, setMenuOpen] = createSignal<string | null>(null);
+  const [expandedWorkspaces, setExpandedWorkspaces] = createSignal(
+    new Set<string>()
   );
 
   return (
-    <aside className="sidebar">
-      <div className="sidebar-header">
+    <aside class="sidebar">
+      <div class="sidebar-header">
         <div>
-          <div className="subtitle">Workspaces</div>
+          <div class="subtitle">Workspaces</div>
         </div>
         <button
-          className="ghost workspace-add"
-          onClick={onAddWorkspace}
+          class="ghost workspace-add"
+          onClick={props.onAddWorkspace}
           data-tauri-drag-region="false"
           aria-label="Add workspace"
         >
           +
         </button>
       </div>
-      <div className="workspace-list">
-        {workspaces.map((entry) => (
-          <div key={entry.id} className="workspace-card">
-            <div
-              className={`workspace-row ${
-                entry.id === activeWorkspaceId ? "active" : ""
-              }`}
-              role="button"
-              tabIndex={0}
-              onClick={() => onSelectWorkspace(entry.id)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  onSelectWorkspace(entry.id);
-                }
-              }}
-            >
-              <div>
-                <div className="workspace-name-row">
-                  <span className="workspace-name">{entry.name}</span>
-                  <button
-                    className="ghost workspace-add"
+      <div class="workspace-list">
+        <For each={props.workspaces()}>
+          {(entry) => (
+            <div class="workspace-card">
+              <div
+                class={`workspace-row ${
+                  entry.id === props.activeWorkspaceId() ? "active" : ""
+                }`}
+                role="button"
+                tabIndex={0}
+                onClick={() => props.onSelectWorkspace(entry.id)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    props.onSelectWorkspace(entry.id);
+                  }
+                }}
+              >
+                <div>
+                  <div class="workspace-name-row">
+                    <span class="workspace-name">{entry.name}</span>
+                    <button
+                      class="ghost workspace-add"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        props.onAddAgent(entry);
+                      }}
+                      data-tauri-drag-region="false"
+                      aria-label="Add agent"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+                <Show when={!entry.connected}>
+                  <span
+                    class="connect"
                     onClick={(event) => {
                       event.stopPropagation();
-                      onAddAgent(entry);
+                      props.onConnectWorkspace(entry);
                     }}
-                    data-tauri-drag-region="false"
-                    aria-label="Add agent"
                   >
-                    +
-                  </button>
-                </div>
+                    connect
+                  </span>
+                </Show>
               </div>
-              {!entry.connected && (
-                <span
-                  className="connect"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onConnectWorkspace(entry);
-                  }}
-                >
-                  connect
-                </span>
-              )}
-            </div>
-            {(threadsByWorkspace[entry.id] ?? []).length > 0 && (
-              <div className="thread-list">
-                {(expandedWorkspaces.has(entry.id)
-                  ? threadsByWorkspace[entry.id] ?? []
-                  : (threadsByWorkspace[entry.id] ?? []).slice(0, 3)
-                ).map((thread) => (
-                  <div
-                    key={thread.id}
-                    className={`thread-row ${
-                      entry.id === activeWorkspaceId &&
-                      thread.id === activeThreadId
-                        ? "active"
-                        : ""
-                    }`}
-                    onClick={() => onSelectThread(entry.id, thread.id)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault();
-                        onSelectThread(entry.id, thread.id);
-                      }
-                    }}
+              <Show when={(props.threadsByWorkspace()[entry.id] ?? []).length > 0}>
+                <div class="thread-list">
+                  <For
+                    each={
+                      expandedWorkspaces().has(entry.id)
+                        ? props.threadsByWorkspace()[entry.id] ?? []
+                        : (props.threadsByWorkspace()[entry.id] ?? []).slice(0, 3)
+                    }
                   >
-                    <span
-                      className={`thread-status ${
-                        threadStatusById[thread.id]?.isProcessing
-                          ? "processing"
-                          : threadStatusById[thread.id]?.hasUnread
-                            ? "unread"
-                            : "ready"
-                      }`}
-                      aria-hidden
-                    />
-                    <span className="thread-name">{thread.name}</span>
-                    <div className="thread-menu">
-                      <button
-                        className="thread-menu-trigger"
-                        aria-label="Thread menu"
-                        onMouseDown={(event) => event.stopPropagation()}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          setMenuOpen((prev) =>
-                            prev === thread.id ? null : thread.id,
-                          );
+                    {(thread) => (
+                      <div
+                        class={`thread-row ${
+                          entry.id === props.activeWorkspaceId() &&
+                          thread.id === props.activeThreadId()
+                            ? "active"
+                            : ""
+                        }`}
+                        onClick={() => props.onSelectThread(entry.id, thread.id)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            props.onSelectThread(entry.id, thread.id);
+                          }
                         }}
                       >
-                        ...
-                      </button>
-                      {menuOpen === thread.id && (
-                        <div className="thread-menu-popup">
+                        <span
+                          class={`thread-status ${
+                            props.threadStatusById()[thread.id]?.isProcessing
+                              ? "processing"
+                              : props.threadStatusById()[thread.id]?.hasUnread
+                                ? "unread"
+                                : "ready"
+                          }`}
+                          aria-hidden
+                        />
+                        <span class="thread-name">{thread.name}</span>
+                        <div class="thread-menu">
                           <button
-                            className="thread-menu-item"
-                            onClick={() => {
-                              onDeleteThread(entry.id, thread.id);
-                              setMenuOpen(null);
+                            class="thread-menu-trigger"
+                            aria-label="Thread menu"
+                            onMouseDown={(event) => event.stopPropagation()}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setMenuOpen((prev) =>
+                                prev === thread.id ? null : thread.id
+                              );
                             }}
                           >
-                            Archive
+                            ...
                           </button>
+                          <Show when={menuOpen() === thread.id}>
+                            <div class="thread-menu-popup">
+                              <button
+                                class="thread-menu-item"
+                                onClick={() => {
+                                  props.onDeleteThread(entry.id, thread.id);
+                                  setMenuOpen(null);
+                                }}
+                              >
+                                Archive
+                              </button>
+                            </div>
+                          </Show>
                         </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-                {(threadsByWorkspace[entry.id] ?? []).length > 3 && (
-                  <button
-                    className="thread-more"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      setExpandedWorkspaces((prev) => {
-                        const next = new Set(prev);
-                        if (next.has(entry.id)) {
-                          next.delete(entry.id);
-                        } else {
-                          next.add(entry.id);
-                        }
-                        return next;
-                      });
-                    }}
-                  >
-                    {expandedWorkspaces.has(entry.id)
-                      ? "Show less"
-                      : `${(threadsByWorkspace[entry.id] ?? []).length - 3} more...`}
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        ))}
-        {!workspaces.length && (
-          <div className="empty">Add a workspace to start.</div>
-        )}
+                      </div>
+                    )}
+                  </For>
+                  <Show when={(props.threadsByWorkspace()[entry.id] ?? []).length > 3}>
+                    <button
+                      class="thread-more"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setExpandedWorkspaces((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(entry.id)) {
+                            next.delete(entry.id);
+                          } else {
+                            next.add(entry.id);
+                          }
+                          return next;
+                        });
+                      }}
+                    >
+                      {expandedWorkspaces().has(entry.id)
+                        ? "Show less"
+                        : `${(props.threadsByWorkspace()[entry.id] ?? []).length - 3} more...`}
+                    </button>
+                  </Show>
+                </div>
+              </Show>
+            </div>
+          )}
+        </For>
+        <Show when={!props.workspaces().length}>
+          <div class="empty">Add a workspace to start.</div>
+        </Show>
       </div>
     </aside>
   );

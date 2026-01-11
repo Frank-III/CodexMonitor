@@ -4,45 +4,41 @@ type HomeProps = {
   onCloneRepository: () => void;
 };
 
-export function Home({
-  onOpenProject,
-  onAddWorkspace,
-  onCloneRepository,
-}: HomeProps) {
+export function Home(props: HomeProps) {
   return (
-    <div className="home">
-      <div className="home-title">Codex Monitor</div>
-      <div className="home-subtitle">
+    <div class="home">
+      <div class="home-title">Codex Monitor</div>
+      <div class="home-subtitle">
         Orchestrate agents across your local projects.
       </div>
-      <div className="home-actions">
+      <div class="home-actions">
         <button
-          className="home-button primary"
-          onClick={onOpenProject}
+          class="home-button primary"
+          onClick={props.onOpenProject}
           data-tauri-drag-region="false"
         >
-          <span className="home-icon" aria-hidden>
+          <span class="home-icon" aria-hidden>
             ⌘
           </span>
           Open Project
         </button>
         <button
-          className="home-button secondary"
-          onClick={onAddWorkspace}
+          class="home-button secondary"
+          onClick={props.onAddWorkspace}
           data-tauri-drag-region="false"
         >
-          <span className="home-icon" aria-hidden>
+          <span class="home-icon" aria-hidden>
             +
           </span>
           Add Workspace
         </button>
         <button
-          className="home-button ghost"
-          onClick={onCloneRepository}
+          class="home-button ghost"
+          onClick={props.onCloneRepository}
           disabled
           data-tauri-drag-region="false"
         >
-          <span className="home-icon" aria-hidden>
+          <span class="home-icon" aria-hidden>
             ⤓
           </span>
           Clone Repository

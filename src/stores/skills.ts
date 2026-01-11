@@ -1,28 +1,34 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createSignal, createMemo, createEffect } from "solid-js";
 import type { DebugEntry, SkillOption, WorkspaceInfo } from "../types";
 import { getSkillsList } from "../services/tauri";
 
-type UseSkillsOptions = {
-  activeWorkspace: WorkspaceInfo | null;
-  onDebug?: (entry: DebugEntry) => void;
+export type SkillsStore = {
+  skills: () => SkillOption[];
+  refreshSkills: () => Promise<void>;
 };
 
-export function useSkills({ activeWorkspace, onDebug }: UseSkillsOptions) {
-  const [skills, setSkills] = useState<SkillOption[]>([]);
-  const lastFetchedWorkspaceId = useRef<string | null>(null);
-  const inFlight = useRef(false);
+export function createSkillsStore(options: {
+  activeWorkspace: () => WorkspaceInfo | null;
+  onDebug?: (entry: DebugEntry) => void;
+}): SkillsStore {
+  const [skills, setSkills] = createSignal<SkillOption[]>([]);
+  let lastFetchedWorkspaceId: string | null = null;
+  let inFlight = false;
 
-  const workspaceId = activeWorkspace?.id ?? null;
-  const isConnected = Boolean(activeWorkspace?.connected);
+  const { activeWorkspace, onDebug } = options;
 
-  const refreshSkills = useCallback(async () => {
+  async function refreshSkills(): Promise<void> {
+    const workspace = activeWorkspace();
+    const workspaceId = workspace?.id ?? null;
+    const isConnected = Boolean(workspace?.connected);
+
     if (!workspaceId || !isConnected) {
       return;
     }
-    if (inFlight.current) {
+    if (inFlight) {
       return;
     }
-    inFlight.current = true;
+    inFlight = true;
     onDebug?.({
       id: `${Date.now()}-client-skills-list`,
       timestamp: Date.now(),
@@ -52,7 +58,7 @@ export function useSkills({ activeWorkspace, onDebug }: UseSkillsOptions) {
         description: item.description ? String(item.description) : undefined,
       }));
       setSkills(data);
-      lastFetchedWorkspaceId.current = workspaceId;
+      lastFetchedWorkspaceId = workspaceId;
     } catch (error) {
       onDebug?.({
         id: `${Date.now()}-client-skills-list-error`,
@@ -62,24 +68,26 @@ export function useSkills({ activeWorkspace, onDebug }: UseSkillsOptions) {
         payload: error instanceof Error ? error.message : String(error),
       });
     } finally {
-      inFlight.current = false;
+      inFlight = false;
     }
-  }, [isConnected, onDebug, workspaceId]);
+  }
 
-  useEffect(() => {
+  // Auto-refresh when workspace changes
+  createEffect(() => {
+    const workspace = activeWorkspace();
+    const workspaceId = workspace?.id ?? null;
+    const isConnected = Boolean(workspace?.connected);
+
     if (!workspaceId || !isConnected) {
       return;
     }
-    if (lastFetchedWorkspaceId.current === workspaceId && skills.length > 0) {
+    if (lastFetchedWorkspaceId === workspaceId && skills().length > 0) {
       return;
     }
     refreshSkills();
-  }, [isConnected, refreshSkills, skills.length, workspaceId]);
+  });
 
-  const skillOptions = useMemo(
-    () => skills.filter((skill) => skill.name),
-    [skills],
-  );
+  const skillOptions = createMemo(() => skills().filter((skill) => skill.name));
 
   return {
     skills: skillOptions,

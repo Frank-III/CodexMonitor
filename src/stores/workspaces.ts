@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import type { DebugEntry } from "../types";
-import type { WorkspaceInfo } from "../types";
+import { createSignal, createMemo, createEffect } from "solid-js";
+import type { DebugEntry, WorkspaceInfo } from "../types";
 import {
   addWorkspace as addWorkspaceService,
   connectWorkspace as connectWorkspaceService,
@@ -8,35 +7,42 @@ import {
   pickWorkspacePath,
 } from "../services/tauri";
 
-type UseWorkspacesOptions = {
-  onDebug?: (entry: DebugEntry) => void;
+export type WorkspacesStore = {
+  workspaces: () => WorkspaceInfo[];
+  activeWorkspace: () => WorkspaceInfo | null;
+  activeWorkspaceId: () => string | null;
+  setActiveWorkspaceId: (id: string | null) => void;
+  addWorkspace: () => Promise<WorkspaceInfo | null>;
+  connectWorkspace: (entry: WorkspaceInfo) => Promise<void>;
+  markWorkspaceConnected: (id: string) => void;
+  hasLoaded: () => boolean;
 };
 
-export function useWorkspaces(options: UseWorkspacesOptions = {}) {
-  const [workspaces, setWorkspaces] = useState<WorkspaceInfo[]>([]);
-  const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(null);
-  const [hasLoaded, setHasLoaded] = useState(false);
+export function createWorkspacesStore(options: {
+  onDebug?: (entry: DebugEntry) => void;
+}): WorkspacesStore {
+  const [workspaces, setWorkspaces] = createSignal<WorkspaceInfo[]>([]);
+  const [activeWorkspaceId, setActiveWorkspaceId] = createSignal<string | null>(null);
+  const [hasLoaded, setHasLoaded] = createSignal(false);
   const { onDebug } = options;
 
-  useEffect(() => {
-    listWorkspaces()
-      .then((entries) => {
-        setWorkspaces(entries);
-        setActiveWorkspaceId(null);
-        setHasLoaded(true);
-      })
-      .catch((err) => {
-        console.error("Failed to load workspaces", err);
-        setHasLoaded(true);
-      });
-  }, []);
+  // Load workspaces on creation
+  listWorkspaces()
+    .then((entries) => {
+      setWorkspaces(entries);
+      setActiveWorkspaceId(null);
+      setHasLoaded(true);
+    })
+    .catch((err) => {
+      console.error("Failed to load workspaces", err);
+      setHasLoaded(true);
+    });
 
-  const activeWorkspace = useMemo(
-    () => workspaces.find((entry) => entry.id === activeWorkspaceId) ?? null,
-    [activeWorkspaceId, workspaces],
+  const activeWorkspace = createMemo(
+    () => workspaces().find((entry) => entry.id === activeWorkspaceId()) ?? null
   );
 
-  async function addWorkspace() {
+  async function addWorkspace(): Promise<WorkspaceInfo | null> {
     const selection = await pickWorkspacePath();
     if (!selection) {
       return null;
@@ -65,7 +71,7 @@ export function useWorkspaces(options: UseWorkspacesOptions = {}) {
     }
   }
 
-  async function connectWorkspace(entry: WorkspaceInfo) {
+  async function connectWorkspace(entry: WorkspaceInfo): Promise<void> {
     onDebug?.({
       id: `${Date.now()}-client-connect-workspace`,
       timestamp: Date.now(),
@@ -87,9 +93,9 @@ export function useWorkspaces(options: UseWorkspacesOptions = {}) {
     }
   }
 
-  function markWorkspaceConnected(id: string) {
+  function markWorkspaceConnected(id: string): void {
     setWorkspaces((prev) =>
-      prev.map((entry) => (entry.id === id ? { ...entry, connected: true } : entry)),
+      prev.map((entry) => (entry.id === id ? { ...entry, connected: true } : entry))
     );
   }
 

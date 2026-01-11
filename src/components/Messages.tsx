@@ -1,163 +1,172 @@
-import { useEffect, useRef } from "react";
+import { createEffect, For, Show, type Accessor } from "solid-js";
 import type { ConversationItem } from "../types";
 import { Markdown } from "./Markdown";
 
 type MessagesProps = {
-  items: ConversationItem[];
-  isThinking: boolean;
+  items: Accessor<ConversationItem[]>;
+  isThinking: Accessor<boolean>;
 };
 
-export function Messages({ items, isThinking }: MessagesProps) {
-  const bottomRef = useRef<HTMLDivElement | null>(null);
+export function Messages(props: MessagesProps) {
+  let bottomRef: HTMLDivElement | undefined;
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [items.length, isThinking]);
+  createEffect(() => {
+    // Trigger on items length or thinking state change
+    const _ = props.items().length;
+    const __ = props.isThinking();
+    bottomRef?.scrollIntoView({ behavior: "smooth", block: "end" });
+  });
 
   return (
-    <div className="messages messages-full">
-      {items.map((item) => {
-        if (item.kind === "message") {
-          return (
-            <div key={item.id} className={`message ${item.role}`}>
-              <div className="bubble">
-                <Markdown value={item.text} className="markdown" />
-              </div>
-            </div>
-          );
-        }
-        if (item.kind === "reasoning") {
-          const summaryText = item.summary || item.content;
-          const summaryLines = summaryText
-            .split("\n")
-            .map((line) => line.trim())
-            .filter(Boolean);
-          const rawTitle =
-            summaryLines.length > 0
-              ? summaryLines[summaryLines.length - 1]
-              : "Reasoning";
-          const cleanTitle = rawTitle
-            .replace(/[`*_~]/g, "")
-            .replace(/\[(.*?)\]\(.*?\)/g, "$1")
-            .trim();
-          const summaryTitle =
-            cleanTitle.length > 80
-              ? `${cleanTitle.slice(0, 80)}…`
-              : cleanTitle || "Reasoning";
-          return (
-            <details key={item.id} className="item-card reasoning">
-              <summary>
-                <span className="item-summary-left">
-                  <span className="item-chevron" aria-hidden>
-                    ▸
-                  </span>
-                  <span className="item-title">{summaryTitle}</span>
-                </span>
-              </summary>
-              <div className="item-body">
-                {item.summary && (
-                  <Markdown value={item.summary} className="item-text markdown" />
-                )}
-                {item.content && (
-                  <Markdown value={item.content} className="item-text markdown" />
-                )}
-              </div>
-            </details>
-          );
-        }
-        if (item.kind === "diff") {
-          return (
-            <details key={item.id} className="item-card diff">
-              <summary>
-                <span className="item-summary-left">
-                  <span className="item-chevron" aria-hidden>
-                    ▸
-                  </span>
-                  <span className="item-title">{item.title}</span>
-                </span>
-                {item.status && <span className="item-status">{item.status}</span>}
-              </summary>
-              <div className="item-body">
-                <Markdown
-                  value={item.diff}
-                  className="item-output markdown"
-                  codeBlock
-                />
-              </div>
-            </details>
-          );
-        }
-        const isFileChange = item.toolType === "fileChange";
-        return (
-          <details key={item.id} className="item-card tool">
-            <summary>
-              <span className="item-summary-left">
-                <span className="item-chevron" aria-hidden>
-                  ▸
-                </span>
-                <span className="item-title">{item.title}</span>
-              </span>
-              {item.status && <span className="item-status">{item.status}</span>}
-            </summary>
-            <div className="item-body">
-              {!isFileChange && item.detail && (
-                <Markdown value={item.detail} className="item-text markdown" />
-              )}
-              {isFileChange && item.changes?.length ? (
-                <div className="file-change-list">
-                  {item.changes.map((change, index) => (
-                    <div
-                      key={`${change.path}-${index}`}
-                      className="file-change"
-                    >
-                      <div className="file-change-header">
-                        {change.kind && (
-                          <span className="file-change-kind">
-                            {change.kind.toUpperCase()}
-                          </span>
-                        )}
-                        <span className="file-change-path">{change.path}</span>
-                      </div>
-                      {change.diff && (
-                        <Markdown
-                          value={change.diff}
-                          className="item-output markdown"
-                          codeBlock
-                        />
-                      )}
-                    </div>
-                  ))}
+    <div class="messages messages-full">
+      <For each={props.items()}>
+        {(item) => {
+          if (item.kind === "message") {
+            return (
+              <div class={`message ${item.role}`}>
+                <div class="bubble">
+                  <Markdown value={item.text} class="markdown" />
                 </div>
-              ) : null}
-              {isFileChange && !item.changes?.length && item.detail && (
-                <Markdown value={item.detail} className="item-text markdown" />
-              )}
-              {item.output && (!isFileChange || !item.changes?.length) && (
-                <Markdown
-                  value={item.output}
-                  className="item-output markdown"
-                  codeBlock
-                />
-              )}
-              {isFileChange && item.output && item.changes?.length ? (
-                <Markdown
-                  value={item.output}
-                  className="item-output markdown"
-                  codeBlock
-                />
-              ) : null}
-            </div>
-          </details>
-        );
-      })}
-      {isThinking && (
-        <div className="thinking">Codex is thinking...</div>
-      )}
-      {!items.length && (
-        <div className="empty messages-empty">
+              </div>
+            );
+          }
+          if (item.kind === "reasoning") {
+            const summaryText = item.summary || item.content;
+            const summaryLines = summaryText
+              .split("\n")
+              .map((line) => line.trim())
+              .filter(Boolean);
+            const rawTitle =
+              summaryLines.length > 0
+                ? summaryLines[summaryLines.length - 1]
+                : "Reasoning";
+            const cleanTitle = rawTitle
+              .replace(/[`*_~]/g, "")
+              .replace(/\[(.*?)\]\(.*?\)/g, "$1")
+              .trim();
+            const summaryTitle =
+              cleanTitle.length > 80
+                ? `${cleanTitle.slice(0, 80)}...`
+                : cleanTitle || "Reasoning";
+            return (
+              <details class="item-card reasoning">
+                <summary>
+                  <span class="item-summary-left">
+                    <span class="item-chevron" aria-hidden>
+                      ▸
+                    </span>
+                    <span class="item-title">{summaryTitle}</span>
+                  </span>
+                </summary>
+                <div class="item-body">
+                  <Show when={item.summary}>
+                    <Markdown value={item.summary} class="item-text markdown" />
+                  </Show>
+                  <Show when={item.content}>
+                    <Markdown value={item.content} class="item-text markdown" />
+                  </Show>
+                </div>
+              </details>
+            );
+          }
+          if (item.kind === "diff") {
+            return (
+              <details class="item-card diff">
+                <summary>
+                  <span class="item-summary-left">
+                    <span class="item-chevron" aria-hidden>
+                      ▸
+                    </span>
+                    <span class="item-title">{item.title}</span>
+                  </span>
+                  <Show when={item.status}>
+                    <span class="item-status">{item.status}</span>
+                  </Show>
+                </summary>
+                <div class="item-body">
+                  <Markdown
+                    value={item.diff}
+                    class="item-output markdown"
+                    codeBlock
+                  />
+                </div>
+              </details>
+            );
+          }
+          // Tool items
+          const isFileChange = item.toolType === "fileChange";
+          return (
+            <details class="item-card tool">
+              <summary>
+                <span class="item-summary-left">
+                  <span class="item-chevron" aria-hidden>
+                    ▸
+                  </span>
+                  <span class="item-title">{item.title}</span>
+                </span>
+                <Show when={item.status}>
+                  <span class="item-status">{item.status}</span>
+                </Show>
+              </summary>
+              <div class="item-body">
+                <Show when={!isFileChange && item.detail}>
+                  <Markdown value={item.detail} class="item-text markdown" />
+                </Show>
+                <Show when={isFileChange && item.changes?.length}>
+                  <div class="file-change-list">
+                    <For each={item.changes}>
+                      {(change, index) => (
+                        <div class="file-change">
+                          <div class="file-change-header">
+                            <Show when={change.kind}>
+                              <span class="file-change-kind">
+                                {change.kind!.toUpperCase()}
+                              </span>
+                            </Show>
+                            <span class="file-change-path">{change.path}</span>
+                          </div>
+                          <Show when={change.diff}>
+                            <Markdown
+                              value={change.diff!}
+                              class="item-output markdown"
+                              codeBlock
+                            />
+                          </Show>
+                        </div>
+                      )}
+                    </For>
+                  </div>
+                </Show>
+                <Show when={isFileChange && !item.changes?.length && item.detail}>
+                  <Markdown value={item.detail} class="item-text markdown" />
+                </Show>
+                <Show when={item.output && (!isFileChange || !item.changes?.length)}>
+                  <Markdown
+                    value={item.output!}
+                    class="item-output markdown"
+                    codeBlock
+                  />
+                </Show>
+                <Show when={isFileChange && item.output && item.changes?.length}>
+                  <Markdown
+                    value={item.output!}
+                    class="item-output markdown"
+                    codeBlock
+                  />
+                </Show>
+              </div>
+            </details>
+          );
+        }}
+      </For>
+      <Show when={props.isThinking()}>
+        <div class="thinking">Codex is thinking...</div>
+      </Show>
+      <Show when={!props.items().length}>
+        <div class="empty messages-empty">
           Start a thread and send a prompt to the agent.
         </div>
-      )}
+      </Show>
       <div ref={bottomRef} />
     </div>
   );

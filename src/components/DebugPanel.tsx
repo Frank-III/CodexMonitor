@@ -1,8 +1,9 @@
+import { For, Show, type Accessor } from "solid-js";
 import type { DebugEntry } from "../types";
 
 type DebugPanelProps = {
-  entries: DebugEntry[];
-  isOpen: boolean;
+  entries: Accessor<DebugEntry[]>;
+  isOpen: Accessor<boolean>;
   onToggle: () => void;
   onClear: () => void;
   onCopy: () => void;
@@ -22,55 +23,47 @@ function formatPayload(payload: unknown) {
   }
 }
 
-export function DebugPanel({
-  entries,
-  isOpen,
-  onToggle,
-  onClear,
-  onCopy,
-}: DebugPanelProps) {
-  if (!isOpen) {
-    return null;
-  }
-
+export function DebugPanel(props: DebugPanelProps) {
   return (
-    <section className="debug-panel open">
-      <div className="debug-header">
-        <div className="debug-title">Debug</div>
-        <div className="debug-actions">
-          <button className="ghost" onClick={onCopy}>
-            Copy
-          </button>
-          <button className="ghost" onClick={onClear}>
-            Clear
-          </button>
+    <Show when={props.isOpen()}>
+      <section class="debug-panel open">
+        <div class="debug-header">
+          <div class="debug-title">Debug</div>
+          <div class="debug-actions">
+            <button class="ghost" onClick={props.onCopy}>
+              Copy
+            </button>
+            <button class="ghost" onClick={props.onClear}>
+              Clear
+            </button>
+          </div>
         </div>
-      </div>
-      {isOpen && (
-        <div className="debug-list">
-          {entries.length === 0 && (
-            <div className="debug-empty">No debug events yet.</div>
-          )}
-          {entries.map((entry) => (
-            <div key={entry.id} className="debug-row">
-              <div className="debug-meta">
-                <span className={`debug-source ${entry.source}`}>
-                  {entry.source}
-                </span>
-                <span className="debug-time">
-                  {new Date(entry.timestamp).toLocaleTimeString()}
-                </span>
-                <span className="debug-label">{entry.label}</span>
+        <div class="debug-list">
+          <Show when={props.entries().length === 0}>
+            <div class="debug-empty">No debug events yet.</div>
+          </Show>
+          <For each={props.entries()}>
+            {(entry) => (
+              <div class="debug-row">
+                <div class="debug-meta">
+                  <span class={`debug-source ${entry.source}`}>
+                    {entry.source}
+                  </span>
+                  <span class="debug-time">
+                    {new Date(entry.timestamp).toLocaleTimeString()}
+                  </span>
+                  <span class="debug-label">{entry.label}</span>
+                </div>
+                <Show when={entry.payload !== undefined}>
+                  <pre class="debug-payload">
+                    {formatPayload(entry.payload)}
+                  </pre>
+                </Show>
               </div>
-              {entry.payload !== undefined && (
-                <pre className="debug-payload">
-                  {formatPayload(entry.payload)}
-                </pre>
-              )}
-            </div>
-          ))}
+            )}
+          </For>
         </div>
-      )}
-    </section>
+      </section>
+    </Show>
   );
 }

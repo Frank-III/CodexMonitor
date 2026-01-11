@@ -5,14 +5,14 @@ type MainHeaderProps = {
   branchName: string;
 };
 
-export function MainHeader({ workspace, branchName }: MainHeaderProps) {
+export function MainHeader(props: MainHeaderProps) {
   return (
-    <header className="main-header" data-tauri-drag-region>
-      <div className="workspace-header">
-        <div className="branch-pill">{branchName}</div>
+    <header class="main-header" data-tauri-drag-region>
+      <div class="workspace-header">
+        <div class="branch-pill">{props.branchName}</div>
         <div>
-          <div className="workspace-title">{workspace.name}</div>
-          <div className="workspace-meta">{workspace.path}</div>
+          <div class="workspace-title">{props.workspace.name}</div>
+          <div class="workspace-meta">{props.workspace.path}</div>
         </div>
       </div>
     </header>

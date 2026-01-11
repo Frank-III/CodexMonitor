@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { createSignal, createEffect, onMount, Show, For } from "solid-js";
 import "./styles/base.css";
 import "./styles/buttons.css";
 import "./styles/sidebar.css";
@@ -17,25 +17,28 @@ import { Approvals } from "./components/Approvals";
 import { Composer } from "./components/Composer";
 import { GitDiffPanel } from "./components/GitDiffPanel";
 import { DebugPanel } from "./components/DebugPanel";
-import { useWorkspaces } from "./hooks/useWorkspaces";
-import { useThreads } from "./hooks/useThreads";
-import { useWindowDrag } from "./hooks/useWindowDrag";
-import { useGitStatus } from "./hooks/useGitStatus";
-import { useModels } from "./hooks/useModels";
-import { useSkills } from "./hooks/useSkills";
+import {
+  createWorkspacesStore,
+  createModelsStore,
+  createSkillsStore,
+  createGitStatusStore,
+  createThreadsStore,
+  setupWindowDrag,
+} from "./stores";
 import type { DebugEntry } from "./types";
 
 function App() {
-  const [input, setInput] = useState("");
-  const [debugOpen, setDebugOpen] = useState(false);
-  const [debugEntries, setDebugEntries] = useState<DebugEntry[]>([]);
+  const [input, setInput] = createSignal("");
+  const [debugOpen, setDebugOpen] = createSignal(false);
+  const [debugEntries, setDebugEntries] = createSignal<DebugEntry[]>([]);
 
-  const addDebugEntry = useCallback((entry: DebugEntry) => {
+  const addDebugEntry = (entry: DebugEntry) => {
     setDebugEntries((prev) => [...prev, entry].slice(-300));
-  }, []);
+  };
 
   const handleCopyDebug = async () => {
-    const text = debugEntries
+    const entries = debugEntries();
+    const text = entries
       .map((entry) => {
         const timestamp = new Date(entry.timestamp).toLocaleTimeString();
         const payload =
@@ -54,113 +57,95 @@ function App() {
     }
   };
 
-  const {
-    workspaces,
-    activeWorkspace,
-    activeWorkspaceId,
-    setActiveWorkspaceId,
-    addWorkspace,
-    connectWorkspace,
-    markWorkspaceConnected,
-    hasLoaded,
-  } = useWorkspaces({ onDebug: addDebugEntry });
+  const workspacesStore = createWorkspacesStore({ onDebug: addDebugEntry });
 
-  const { status: gitStatus, refresh: refreshGitStatus } =
-    useGitStatus(activeWorkspace);
-  const {
-    models,
-    selectedModel,
-    selectedModelId,
-    setSelectedModelId,
-    reasoningOptions,
-    selectedEffort,
-    setSelectedEffort,
-  } = useModels({ activeWorkspace, onDebug: addDebugEntry });
-  const { skills } = useSkills({ activeWorkspace, onDebug: addDebugEntry });
+  const gitStatusStore = createGitStatusStore(workspacesStore.activeWorkspace);
 
-  const resolvedModel = selectedModel?.model ?? null;
-  const fileStatus =
-    gitStatus.files.length > 0
-      ? `${gitStatus.files.length} file${gitStatus.files.length === 1 ? "" : "s"} changed`
-      : "Working tree clean";
-
-  const {
-    setActiveThreadId,
-    activeThreadId,
-    activeItems,
-    approvals,
-    threadsByWorkspace,
-    threadStatusById,
-    removeThread,
-    startThread,
-    startThreadForWorkspace,
-    listThreadsForWorkspace,
-    sendUserMessage,
-    handleApprovalDecision,
-  } = useThreads({
-    activeWorkspace,
-    onWorkspaceConnected: markWorkspaceConnected,
+  const modelsStore = createModelsStore({
+    activeWorkspace: workspacesStore.activeWorkspace,
     onDebug: addDebugEntry,
-    model: resolvedModel,
-    effort: selectedEffort,
-    onMessageActivity: refreshGitStatus,
   });
 
-  useWindowDrag("titlebar");
+  const skillsStore = createSkillsStore({
+    activeWorkspace: workspacesStore.activeWorkspace,
+    onDebug: addDebugEntry,
+  });
 
-  const restoredWorkspaces = useRef(new Set<string>());
+  const resolvedModel = () => modelsStore.selectedModel()?.model ?? null;
+  const fileStatus = () => {
+    const files = gitStatusStore.status().files;
+    return files.length > 0
+      ? `${files.length} file${files.length === 1 ? "" : "s"} changed`
+      : "Working tree clean";
+  };
 
-  useEffect(() => {
-    if (!hasLoaded) {
+  const threadsStore = createThreadsStore({
+    activeWorkspace: workspacesStore.activeWorkspace,
+    activeWorkspaceId: workspacesStore.activeWorkspaceId,
+    onWorkspaceConnected: workspacesStore.markWorkspaceConnected,
+    onDebug: addDebugEntry,
+    model: resolvedModel,
+    effort: modelsStore.selectedEffort,
+    onMessageActivity: gitStatusStore.refresh,
+  });
+
+  setupWindowDrag("titlebar");
+
+  const restoredWorkspaces = new Set<string>();
+
+  createEffect(() => {
+    if (!workspacesStore.hasLoaded()) {
       return;
     }
-    workspaces.forEach((workspace) => {
-      if (restoredWorkspaces.current.has(workspace.id)) {
+    workspacesStore.workspaces().forEach((workspace) => {
+      if (restoredWorkspaces.has(workspace.id)) {
         return;
       }
-      restoredWorkspaces.current.add(workspace.id);
+      restoredWorkspaces.add(workspace.id);
       (async () => {
         try {
           if (!workspace.connected) {
-            await connectWorkspace(workspace);
+            await workspacesStore.connectWorkspace(workspace);
           }
-          await listThreadsForWorkspace(workspace);
+          await threadsStore.listThreadsForWorkspace(workspace);
         } catch {
           // Silent: connection errors show in debug panel.
         }
       })();
     });
-  }, [connectWorkspace, hasLoaded, listThreadsForWorkspace, workspaces]);
+  });
 
   async function handleOpenProject() {
-    const workspace = await addWorkspace();
+    const workspace = await workspacesStore.addWorkspace();
     if (workspace) {
-      setActiveThreadId(null, workspace.id);
+      threadsStore.setActiveThreadId(null, workspace.id);
     }
   }
 
   async function handleAddWorkspace() {
-    const workspace = await addWorkspace();
+    const workspace = await workspacesStore.addWorkspace();
     if (workspace) {
-      setActiveThreadId(null, workspace.id);
+      threadsStore.setActiveThreadId(null, workspace.id);
     }
   }
 
   async function handleNewThread() {
-    if (activeWorkspace && !activeWorkspace.connected) {
-      await connectWorkspace(activeWorkspace);
+    const workspace = workspacesStore.activeWorkspace();
+    if (workspace && !workspace.connected) {
+      await workspacesStore.connectWorkspace(workspace);
     }
-    await startThread();
+    await threadsStore.startThread();
   }
 
   async function handleSend() {
-    if (!input.trim()) {
+    if (!input().trim()) {
       return;
     }
-    if (activeWorkspace && !activeWorkspace.connected) {
-      await connectWorkspace(activeWorkspace);
+    const workspace = workspacesStore.activeWorkspace();
+    if (workspace && !workspace.connected) {
+      await workspacesStore.connectWorkspace(workspace);
     }
-    await sendUserMessage(input);
+    await threadsStore.sendUserMessage(input());
     setInput("");
   }
 
@@ -179,131 +164,138 @@ function App() {
   }
 
   return (
-    <div className="app">
-      <div className="drag-strip" id="titlebar" />
+    <div class="app">
+      <div class="drag-strip" id="titlebar" />
       <Sidebar
-        workspaces={workspaces}
-        threadsByWorkspace={threadsByWorkspace}
-        threadStatusById={threadStatusById}
-        activeWorkspaceId={activeWorkspaceId}
-        activeThreadId={activeThreadId}
+        workspaces={workspacesStore.workspaces}
+        threadsByWorkspace={threadsStore.threadsByWorkspace}
+        threadStatusById={threadsStore.threadStatusById}
+        activeWorkspaceId={workspacesStore.activeWorkspaceId}
+        activeThreadId={threadsStore.activeThreadId}
         onAddWorkspace={handleAddWorkspace}
-        onSelectWorkspace={setActiveWorkspaceId}
-        onConnectWorkspace={connectWorkspace}
+        onSelectWorkspace={workspacesStore.setActiveWorkspaceId}
+        onConnectWorkspace={workspacesStore.connectWorkspace}
         onAddAgent={(workspace) => {
-          setActiveWorkspaceId(workspace.id);
+          workspacesStore.setActiveWorkspaceId(workspace.id);
           (async () => {
             if (!workspace.connected) {
-              await connectWorkspace(workspace);
+              await workspacesStore.connectWorkspace(workspace);
             }
-            await startThreadForWorkspace(workspace.id);
+            await threadsStore.startThreadForWorkspace(workspace.id);
           })();
         }}
         onSelectThread={(workspaceId, threadId) => {
-          setActiveWorkspaceId(workspaceId);
-          setActiveThreadId(threadId, workspaceId);
+          workspacesStore.setActiveWorkspaceId(workspaceId);
+          threadsStore.setActiveThreadId(threadId, workspaceId);
         }}
         onDeleteThread={(workspaceId, threadId) => {
-          removeThread(workspaceId, threadId);
+          threadsStore.removeThread(workspaceId, threadId);
         }}
       />
 
-      <section className="main">
-        {!activeWorkspace && (
-          <Home
-            onOpenProject={handleOpenProject}
-            onAddWorkspace={handleAddWorkspace}
-            onCloneRepository={() => {}}
-          />
-        )}
-
-      {activeWorkspace && (
-          <>
-            <div className="main-topbar">
-              <MainHeader
-                workspace={activeWorkspace}
-                branchName={gitStatus.branchName || "unknown"}
-              />
-            <div className="actions">
-              <button
-                className="ghost icon-button"
-                onClick={() => setDebugOpen((prev) => !prev)}
-                aria-label="Debug"
-              >
-                <svg viewBox="0 0 24 24" fill="none" aria-hidden>
-                  <path
-                    d="M9 7.5V6.5a3 3 0 0 1 6 0v1"
-                    stroke="currentColor"
-                    strokeWidth="1.4"
-                    strokeLinecap="round"
-                  />
-                  <rect
-                    x="7"
-                    y="7.5"
-                    width="10"
-                    height="9"
-                    rx="3"
-                    stroke="currentColor"
-                    strokeWidth="1.4"
-                  />
-                  <path
-                    d="M4 12h3m10 0h3M6 8l2 2m8-2-2 2M6 16l2-2m8 2-2-2"
-                    stroke="currentColor"
-                    strokeWidth="1.4"
-                    strokeLinecap="round"
-                  />
-                  <circle cx="10" cy="12" r="0.8" fill="currentColor" />
-                  <circle cx="14" cy="12" r="0.8" fill="currentColor" />
-                </svg>
-              </button>
-            </div>
-          </div>
-
-            <div className="content">
-              <Messages
-                items={activeItems}
-                isThinking={
-                  activeThreadId
-                    ? threadStatusById[activeThreadId]?.isProcessing ?? false
-                    : false
-                }
-              />
-            </div>
-
-            <div className="right-panel">
-              <GitDiffPanel
-                branchName={gitStatus.branchName || "unknown"}
-                totalAdditions={gitStatus.totalAdditions}
-                totalDeletions={gitStatus.totalDeletions}
-                fileStatus={fileStatus}
-                error={gitStatus.error}
-                files={gitStatus.files}
-              />
-              <Approvals approvals={approvals} onDecision={handleApprovalDecision} />
-            </div>
-
-            <Composer
-              value={input}
-              onChange={setInput}
-              onSend={handleSend}
-              models={models}
-              selectedModelId={selectedModelId}
-              onSelectModel={setSelectedModelId}
-              reasoningOptions={reasoningOptions}
-              selectedEffort={selectedEffort}
-              onSelectEffort={setSelectedEffort}
-              skills={skills}
-              onSelectSkill={handleSelectSkill}
+      <section class="main">
+        <Show
+          when={workspacesStore.activeWorkspace()}
+          fallback={
+            <Home
+              onOpenProject={handleOpenProject}
+              onAddWorkspace={handleAddWorkspace}
+              onCloneRepository={() => {}}
             />
-            <DebugPanel
-              entries={debugEntries}
-              isOpen={debugOpen}
-              onToggle={() => setDebugOpen((prev) => !prev)}
-              onClear={() => setDebugEntries([])}
-              onCopy={handleCopyDebug}
-            />
-          </>
-        )}
+          }
+        >
+          {(workspace) => (
+            <>
+              <div class="main-topbar">
+                <MainHeader
+                  workspace={workspace()}
+                  branchName={gitStatusStore.status().branchName || "unknown"}
+                />
+                <div class="actions">
+                  <button
+                    class="ghost icon-button"
+                    onClick={() => setDebugOpen((prev) => !prev)}
+                    aria-label="Debug"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden>
+                      <path
+                        d="M9 7.5V6.5a3 3 0 0 1 6 0v1"
+                        stroke="currentColor"
+                        stroke-width="1.4"
+                        stroke-linecap="round"
+                      />
+                      <rect
+                        x="7"
+                        y="7.5"
+                        width="10"
+                        height="9"
+                        rx="3"
+                        stroke="currentColor"
+                        stroke-width="1.4"
+                      />
+                      <path
+                        d="M4 12h3m10 0h3M6 8l2 2m8-2-2 2M6 16l2-2m8 2-2-2"
+                        stroke="currentColor"
+                        stroke-width="1.4"
+                        stroke-linecap="round"
+                      />
+                      <circle cx="10" cy="12" r="0.8" fill="currentColor" />
+                      <circle cx="14" cy="12" r="0.8" fill="currentColor" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <div class="content">
+                <Messages
+                  items={threadsStore.activeItems}
+                  isThinking={() => {
+                    const threadId = threadsStore.activeThreadId();
+                    return threadId
+                      ? threadsStore.threadStatusById()[threadId]?.isProcessing ?? false
+                      : false;
+                  }}
+                />
+              </div>
+
+              <div class="right-panel">
+                <GitDiffPanel
+                  branchName={() => gitStatusStore.status().branchName || "unknown"}
+                  totalAdditions={() => gitStatusStore.status().totalAdditions}
+                  totalDeletions={() => gitStatusStore.status().totalDeletions}
+                  fileStatus={fileStatus}
+                  error={() => gitStatusStore.status().error}
+                  files={() => gitStatusStore.status().files}
+                />
+                <Approvals
+                  approvals={threadsStore.approvals}
+                  onDecision={threadsStore.handleApprovalDecision}
+                />
+              </div>
+
+              <Composer
+                value={input}
+                onChange={setInput}
+                onSend={handleSend}
+                models={modelsStore.models}
+                selectedModelId={modelsStore.selectedModelId}
+                onSelectModel={modelsStore.setSelectedModelId}
+                reasoningOptions={modelsStore.reasoningOptions}
+                selectedEffort={modelsStore.selectedEffort}
+                onSelectEffort={modelsStore.setSelectedEffort}
+                skills={skillsStore.skills}
+                onSelectSkill={handleSelectSkill}
+              />
+              <DebugPanel
+                entries={debugEntries}
+                isOpen={debugOpen}
+                onToggle={() => setDebugOpen((prev) => !prev)}
+                onClear={() => setDebugEntries([])}
+                onCopy={handleCopyDebug}
+              />
+            </>
+          )}
+        </Show>
       </section>
     </div>
   );

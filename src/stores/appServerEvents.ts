@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { createEffect, onCleanup } from "solid-js";
 import { listen } from "@tauri-apps/api/event";
 import type { AppServerEvent, ApprovalRequest } from "../types";
 
@@ -16,7 +16,7 @@ type AgentCompleted = {
   text: string;
 };
 
-type AppServerEventHandlers = {
+export type AppServerEventHandlers = {
   onWorkspaceConnected?: (workspaceId: string) => void;
   onApprovalRequest?: (request: ApprovalRequest) => void;
   onAgentMessageDelta?: (event: AgentDelta) => void;
@@ -24,32 +24,66 @@ type AppServerEventHandlers = {
   onAppServerEvent?: (event: AppServerEvent) => void;
   onTurnStarted?: (workspaceId: string, threadId: string) => void;
   onTurnCompleted?: (workspaceId: string, threadId: string) => void;
-  onItemStarted?: (workspaceId: string, threadId: string, item: Record<string, unknown>) => void;
-  onItemCompleted?: (workspaceId: string, threadId: string, item: Record<string, unknown>) => void;
-  onReasoningSummaryDelta?: (workspaceId: string, threadId: string, itemId: string, delta: string) => void;
-  onReasoningTextDelta?: (workspaceId: string, threadId: string, itemId: string, delta: string) => void;
-  onCommandOutputDelta?: (workspaceId: string, threadId: string, itemId: string, delta: string) => void;
-  onFileChangeOutputDelta?: (workspaceId: string, threadId: string, itemId: string, delta: string) => void;
-  onTurnDiffUpdated?: (workspaceId: string, threadId: string, diff: string) => void;
+  onItemStarted?: (
+    workspaceId: string,
+    threadId: string,
+    item: Record<string, unknown>
+  ) => void;
+  onItemCompleted?: (
+    workspaceId: string,
+    threadId: string,
+    item: Record<string, unknown>
+  ) => void;
+  onReasoningSummaryDelta?: (
+    workspaceId: string,
+    threadId: string,
+    itemId: string,
+    delta: string
+  ) => void;
+  onReasoningTextDelta?: (
+    workspaceId: string,
+    threadId: string,
+    itemId: string,
+    delta: string
+  ) => void;
+  onCommandOutputDelta?: (
+    workspaceId: string,
+    threadId: string,
+    itemId: string,
+    delta: string
+  ) => void;
+  onFileChangeOutputDelta?: (
+    workspaceId: string,
+    threadId: string,
+    itemId: string,
+    delta: string
+  ) => void;
+  onTurnDiffUpdated?: (
+    workspaceId: string,
+    threadId: string,
+    diff: string
+  ) => void;
 };
 
-export function useAppServerEvents(handlers: AppServerEventHandlers) {
-  useEffect(() => {
+export function setupAppServerEvents(handlers: () => AppServerEventHandlers): void {
+  createEffect(() => {
+    const h = handlers();
     let unlisten: (() => void) | null = null;
     let canceled = false;
+
     listen<AppServerEvent>("app-server-event", (event) => {
-      handlers.onAppServerEvent?.(event.payload);
+      h.onAppServerEvent?.(event.payload);
 
       const { workspace_id, message } = event.payload;
       const method = String(message.method ?? "");
 
       if (method === "codex/connected") {
-        handlers.onWorkspaceConnected?.(workspace_id);
+        h.onWorkspaceConnected?.(workspace_id);
         return;
       }
 
       if (method.includes("requestApproval") && typeof message.id === "number") {
-        handlers.onApprovalRequest?.({
+        h.onApprovalRequest?.({
           workspace_id,
           request_id: message.id,
           method,
@@ -64,7 +98,7 @@ export function useAppServerEvents(handlers: AppServerEventHandlers) {
         const itemId = String(params.itemId ?? params.item_id ?? "");
         const delta = String(params.delta ?? "");
         if (threadId && itemId && delta) {
-          handlers.onAgentMessageDelta?.({
+          h.onAgentMessageDelta?.({
             workspaceId: workspace_id,
             threadId,
             itemId,
@@ -79,7 +113,7 @@ export function useAppServerEvents(handlers: AppServerEventHandlers) {
         const turn = params.turn as Record<string, unknown> | undefined;
         const threadId = String(turn?.threadId ?? turn?.thread_id ?? "");
         if (threadId) {
-          handlers.onTurnStarted?.(workspace_id, threadId);
+          h.onTurnStarted?.(workspace_id, threadId);
         }
         return;
       }
@@ -89,7 +123,7 @@ export function useAppServerEvents(handlers: AppServerEventHandlers) {
         const turn = params.turn as Record<string, unknown> | undefined;
         const threadId = String(turn?.threadId ?? turn?.thread_id ?? "");
         if (threadId) {
-          handlers.onTurnCompleted?.(workspace_id, threadId);
+          h.onTurnCompleted?.(workspace_id, threadId);
         }
         return;
       }
@@ -99,7 +133,7 @@ export function useAppServerEvents(handlers: AppServerEventHandlers) {
         const threadId = String(params.threadId ?? params.thread_id ?? "");
         const diff = String(params.diff ?? "");
         if (threadId && diff) {
-          handlers.onTurnDiffUpdated?.(workspace_id, threadId, diff);
+          h.onTurnDiffUpdated?.(workspace_id, threadId, diff);
         }
         return;
       }
@@ -109,13 +143,13 @@ export function useAppServerEvents(handlers: AppServerEventHandlers) {
         const threadId = String(params.threadId ?? params.thread_id ?? "");
         const item = params.item as Record<string, unknown> | undefined;
         if (threadId && item) {
-          handlers.onItemCompleted?.(workspace_id, threadId, item);
+          h.onItemCompleted?.(workspace_id, threadId, item);
         }
         if (threadId && item?.type === "agentMessage") {
           const itemId = String(item.id ?? "");
           const text = String(item.text ?? "");
           if (itemId) {
-            handlers.onAgentMessageCompleted?.({
+            h.onAgentMessageCompleted?.({
               workspaceId: workspace_id,
               threadId,
               itemId,
@@ -131,7 +165,7 @@ export function useAppServerEvents(handlers: AppServerEventHandlers) {
         const threadId = String(params.threadId ?? params.thread_id ?? "");
         const item = params.item as Record<string, unknown> | undefined;
         if (threadId && item) {
-          handlers.onItemStarted?.(workspace_id, threadId, item);
+          h.onItemStarted?.(workspace_id, threadId, item);
         }
         return;
       }
@@ -142,7 +176,7 @@ export function useAppServerEvents(handlers: AppServerEventHandlers) {
         const itemId = String(params.itemId ?? params.item_id ?? "");
         const delta = String(params.delta ?? "");
         if (threadId && itemId && delta) {
-          handlers.onReasoningSummaryDelta?.(workspace_id, threadId, itemId, delta);
+          h.onReasoningSummaryDelta?.(workspace_id, threadId, itemId, delta);
         }
         return;
       }
@@ -153,7 +187,7 @@ export function useAppServerEvents(handlers: AppServerEventHandlers) {
         const itemId = String(params.itemId ?? params.item_id ?? "");
         const delta = String(params.delta ?? "");
         if (threadId && itemId && delta) {
-          handlers.onReasoningTextDelta?.(workspace_id, threadId, itemId, delta);
+          h.onReasoningTextDelta?.(workspace_id, threadId, itemId, delta);
         }
         return;
       }
@@ -164,7 +198,7 @@ export function useAppServerEvents(handlers: AppServerEventHandlers) {
         const itemId = String(params.itemId ?? params.item_id ?? "");
         const delta = String(params.delta ?? "");
         if (threadId && itemId && delta) {
-          handlers.onCommandOutputDelta?.(workspace_id, threadId, itemId, delta);
+          h.onCommandOutputDelta?.(workspace_id, threadId, itemId, delta);
         }
         return;
       }
@@ -175,7 +209,7 @@ export function useAppServerEvents(handlers: AppServerEventHandlers) {
         const itemId = String(params.itemId ?? params.item_id ?? "");
         const delta = String(params.delta ?? "");
         if (threadId && itemId && delta) {
-          handlers.onFileChangeOutputDelta?.(workspace_id, threadId, itemId, delta);
+          h.onFileChangeOutputDelta?.(workspace_id, threadId, itemId, delta);
         }
         return;
       }
@@ -191,7 +225,7 @@ export function useAppServerEvents(handlers: AppServerEventHandlers) {
       }
     });
 
-    return () => {
+    onCleanup(() => {
       canceled = true;
       if (unlisten) {
         try {
@@ -200,6 +234,6 @@ export function useAppServerEvents(handlers: AppServerEventHandlers) {
           // Ignore unlisten errors when already removed.
         }
       }
-    };
-  }, [handlers]);
+    });
+  });
 }
