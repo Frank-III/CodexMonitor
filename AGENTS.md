@@ -1,13 +1,53 @@
 # CodexMonitor Agent Guide
 
 ## Project Summary
-CodexMonitor is a macOS Tauri app that orchestrates Codex agents across local workspaces. The frontend is React + Vite; the backend is a Tauri Rust process that spawns `codex app-server` per workspace and streams JSON-RPC events.
+CodexMonitor is a macOS Tauri app that orchestrates Codex agents across local workspaces. The frontend is **SolidJS + Vite** (rewritten from the upstream React version); the backend is a Tauri Rust process that spawns `codex app-server` per workspace and streams JSON-RPC events.
+
+## Version Control
+
+We use **jj (Jujutsu)** instead of git for version control. jj is built in Rust and provides first-class Rust library support via the `jj-lib` crate for programmatic access.
+
+Use `jj` commands for all VCS operations. Use the `/jujutsu` skill for jj-specific workflows.
+
+## Build Tooling
+
+### solid-jsx-oxc
+Custom SolidJS JSX compiler built with oxc (Rust-based JS toolchain).
+- Location: `/Users/new/projects/rs/solid-jsx-oxc`
+- This is a local rewrite of the SolidJS compiler using oxc for faster compilation
+- **If you encounter compiler bugs, fix them in this library directly**
+- Note: `vite.config.ts` currently uses `vite-plugin-solid` while `solid-jsx-oxc` is being refactored/stabilized.
+
+## UI Libraries
+
+### Corvu
+Unstyled, accessible UI primitives for SolidJS.
+- Docs: https://corvu.dev/docs/primitives
+- Use corvu components for dialogs, popovers, tooltips, and other interactive UI elements
+
+### Kobalte
+Accessible UI primitives for SolidJS.
+- Docs: https://kobalte.dev/docs/core/overview/introduction/
+- Use Kobalte components (e.g. combobox, tabs, dialogs) when Corvu isn’t a fit or when upstream patterns rely on it
+
+### Solid Primitives
+Collection of high-quality primitives for SolidJS.
+- Docs: https://primitives.solidjs.community
+- Use for utilities like storage, event listeners, resize observers, and other reactive helpers
+
+## SolidJS Guidelines
+
+If unsure about SolidJS patterns or best practices, use the `/solidjs` skill for guidance on:
+- Reactive primitives (`createSignal`, `createMemo`, `createEffect`)
+- Control flow components (`<Show>`, `<For>`, `<Switch>`)
+- Store management
+- Component patterns
 
 ## Key Paths
 
 - `src/App.tsx`: composition root
 - `src/components/`: presentational UI components
-- `src/hooks/`: state + event wiring
+- `src/stores/`: reactive stores + event wiring
 - `src/services/tauri.ts`: Tauri IPC wrapper
 - `src/styles/`: split CSS by area
 - `src/types.ts`: shared types
@@ -18,7 +58,7 @@ CodexMonitor is a macOS Tauri app that orchestrates Codex agents across local wo
 
 - **Composition root**: keep orchestration in `src/App.tsx`; avoid logic in components.
 - **Components**: presentational only; props in, UI out; no Tauri IPC calls.
-- **Hooks**: own state, side-effects, and event wiring (e.g., app-server events).
+- **Stores**: own reactive state, side-effects, and event wiring (e.g., app-server events).
 - **Services**: all Tauri IPC goes through `src/services/tauri.ts`.
 - **Types**: shared UI data types live in `src/types.ts`.
 - **Styles**: one CSS file per UI area in `src/styles/` (no global refactors in components).
@@ -44,21 +84,21 @@ CodexMonitor is a macOS Tauri app that orchestrates Codex agents across local wo
 ## Running Locally
 
 ```bash
-npm install
-npm run tauri dev
+bun install
+bun run tauri dev
 ```
 
 ## Common Changes
 
 - UI layout or styling: update `src/components/*` and `src/styles/*`.
-- App-server event handling: edit `src/hooks/useAppServerEvents.ts`.
+- App-server event handling: edit `src/stores/appServerEvents.ts`.
 - Tauri IPC: add wrappers in `src/services/tauri.ts` and implement in `src-tauri/src/lib.rs`.
-- Git diff behavior: `src/hooks/useGitStatus.ts` (polling + activity refresh) and `src-tauri/src/lib.rs` (libgit2 status).
-- Thread history rendering: `src/hooks/useThreads.ts` converts `thread/resume` turns into UI items.
+- VCS status/log: `src/stores/vcsStatus.ts` + `src/stores/vcsLog.ts` and `src-tauri/src/lib.rs` (jj via `jj-lib`).
+- Thread history rendering: thread stores convert `thread/resume` turns into UI items.
   - Thread names update on first user message (preview-based), and on resume if a preview exists.
 
 ## Notes
 
 - The window uses `titleBarStyle: "Overlay"` and macOS private APIs for transparency.
 - Avoid breaking the JSON-RPC format; app-server rejects requests before initialization.
-- The debug panel is UI-only; it logs client/server/app-server events from `useAppServerEvents`.
+- The debug panel is UI-only; it logs client/server/app-server events from `appServerEvents` store.

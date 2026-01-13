@@ -1,173 +1,201 @@
-import { createEffect, For, Show, type Accessor } from "solid-js";
+import { createEffect, createMemo, createSignal, onCleanup, For, Show, type Accessor } from "solid-js";
 import type { ConversationItem } from "../types";
-import { Markdown } from "./Markdown";
+import type { WorkspacePathPreviewStore } from "../stores/workspacePathPreview";
+import { SessionMessageRail, type MessageNavEntry } from "../ui";
+import { SessionTurn } from "./SessionTurn";
 
 type MessagesProps = {
   items: Accessor<ConversationItem[]>;
   isThinking: Accessor<boolean>;
+  processingStartedAt?: Accessor<number | null>;
+  lastDurationMs?: Accessor<number | null>;
+  onOpenFile?: (path: string) => void;
+  pathPreview?: WorkspacePathPreviewStore;
 };
 
-export function Messages(props: MessagesProps) {
-  let bottomRef: HTMLDivElement | undefined;
+type UserTurn = {
+  id: string;
+  text: string;
+  title?: string;
+};
 
-  createEffect(() => {
-    // Trigger on items length or thinking state change
-    const _ = props.items().length;
-    const __ = props.isThinking();
-    bottomRef?.scrollIntoView({ behavior: "smooth", block: "end" });
+function scrollKeyForItems(items: ConversationItem[]) {
+  if (!items.length) return "empty";
+  const last = items[items.length - 1];
+  switch (last.kind) {
+    case "message":
+      return `${last.id}-${last.text.length}`;
+    case "reasoning":
+      return `${last.id}-${last.summary.length}-${last.content.length}`;
+    case "diff":
+      return `${last.id}-${last.status ?? ""}-${last.diff.length}`;
+    case "tool":
+      return `${last.id}-${last.status ?? ""}-${(last.output ?? "").length}`;
+    default: {
+      const _exhaustive: never = last;
+      return _exhaustive;
+    }
+  }
+}
+
+export function Messages(props: MessagesProps) {
+  let scrollRef: HTMLDivElement | undefined;
+  let bottomRef: HTMLDivElement | undefined;
+  const [activeUserMessageId, setActiveUserMessageId] = createSignal<string | null>(null);
+  const [expandedSteps, setExpandedSteps] = createSignal<Set<string>>(new Set());
+
+  const scrollKey = createMemo(() => scrollKeyForItems(props.items()));
+
+  const userTurns = createMemo<UserTurn[]>(() => {
+    const turns: UserTurn[] = [];
+    for (const item of props.items()) {
+      if (item.kind !== "message" || item.role !== "user") continue;
+      const trimmed = item.text.trim();
+      const firstLine = trimmed.split("\n").map((line) => line.trim()).find(Boolean) ?? "";
+      const baseTitle = firstLine.replace(/\s+/g, " ").trim();
+      const title = baseTitle.length > 80 ? `${baseTitle.slice(0, 80)}…` : baseTitle || undefined;
+      turns.push({ id: item.id, text: item.text, title });
+    }
+    return turns;
   });
 
+  const lastUserTurnId = createMemo(() => {
+    const turns = userTurns();
+    return turns.length > 0 ? turns[turns.length - 1].id : null;
+  });
+
+  const navEntries = createMemo<MessageNavEntry[]>(() =>
+    userTurns().map((turn, i) => ({
+      id: turn.id,
+      title: turn.title || `Message ${i + 1}`,
+    }))
+  );
+
+  const hasRail = createMemo(() => navEntries().length > 1);
+
+  const updateActiveUserMessage = () => {
+    const container = scrollRef;
+    if (!container) return;
+    const nodes = Array.from(container.querySelectorAll<HTMLElement>("[data-message]"));
+    if (nodes.length === 0) {
+      setActiveUserMessageId(null);
+      return;
+    }
+    const containerTop = container.getBoundingClientRect().top;
+    const threshold = containerTop + 80;
+    let active = nodes[0].dataset.message ?? null;
+    for (const node of nodes) {
+      const rect = node.getBoundingClientRect();
+      if (rect.top <= threshold) {
+        active = node.dataset.message ?? active;
+      } else {
+        break;
+      }
+    }
+    setActiveUserMessageId(active);
+  };
+
+  let scrollSpyFrame = 0;
+  const scheduleScrollSpy = () => {
+    if (scrollSpyFrame) return;
+    scrollSpyFrame = window.requestAnimationFrame(() => {
+      scrollSpyFrame = 0;
+      updateActiveUserMessage();
+    });
+  };
+
+  const scrollToUserMessage = (id: string) => {
+    const container = scrollRef;
+    if (!container) return;
+    const nodes = Array.from(container.querySelectorAll<HTMLElement>("[data-message]"));
+    const target = nodes.find((node) => node.dataset.message === id);
+    target?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  createEffect(() => {
+    scrollKey();
+    props.isThinking();
+    if (!bottomRef) return;
+    let raf1 = 0;
+    let raf2 = 0;
+    const target = bottomRef;
+    raf1 = window.requestAnimationFrame(() => {
+      raf2 = window.requestAnimationFrame(() => {
+        target.scrollIntoView({ behavior: "smooth", block: "end" });
+        scheduleScrollSpy();
+      });
+    });
+    onCleanup(() => {
+      if (raf1) window.cancelAnimationFrame(raf1);
+      if (raf2) window.cancelAnimationFrame(raf2);
+    });
+  });
+
+  const toggleStepsExpanded = (id: string) => {
+    setExpandedSteps((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
   return (
-    <div class="messages messages-full">
-      <For each={props.items()}>
-        {(item) => {
-          if (item.kind === "message") {
-            return (
-              <div class={`message ${item.role}`}>
-                <div class="bubble">
-                  <Markdown value={item.text} class="markdown" />
-                </div>
-              </div>
-            );
-          }
-          if (item.kind === "reasoning") {
-            const summaryText = item.summary || item.content;
-            const summaryLines = summaryText
-              .split("\n")
-              .map((line) => line.trim())
-              .filter(Boolean);
-            const rawTitle =
-              summaryLines.length > 0
-                ? summaryLines[summaryLines.length - 1]
-                : "Reasoning";
-            const cleanTitle = rawTitle
-              .replace(/[`*_~]/g, "")
-              .replace(/\[(.*?)\]\(.*?\)/g, "$1")
-              .trim();
-            const summaryTitle =
-              cleanTitle.length > 80
-                ? `${cleanTitle.slice(0, 80)}...`
-                : cleanTitle || "Reasoning";
-            return (
-              <details class="item-card reasoning">
-                <summary>
-                  <span class="item-summary-left">
-                    <span class="item-chevron" aria-hidden>
-                      ▸
-                    </span>
-                    <span class="item-title">{summaryTitle}</span>
-                  </span>
-                </summary>
-                <div class="item-body">
-                  <Show when={item.summary}>
-                    <Markdown value={item.summary} class="item-text markdown" />
-                  </Show>
-                  <Show when={item.content}>
-                    <Markdown value={item.content} class="item-text markdown" />
-                  </Show>
-                </div>
-              </details>
-            );
-          }
-          if (item.kind === "diff") {
-            return (
-              <details class="item-card diff">
-                <summary>
-                  <span class="item-summary-left">
-                    <span class="item-chevron" aria-hidden>
-                      ▸
-                    </span>
-                    <span class="item-title">{item.title}</span>
-                  </span>
-                  <Show when={item.status}>
-                    <span class="item-status">{item.status}</span>
-                  </Show>
-                </summary>
-                <div class="item-body">
-                  <Markdown
-                    value={item.diff}
-                    class="item-output markdown"
-                    codeBlock
-                  />
-                </div>
-              </details>
-            );
-          }
-          // Tool items
-          const isFileChange = item.toolType === "fileChange";
-          return (
-            <details class="item-card tool">
-              <summary>
-                <span class="item-summary-left">
-                  <span class="item-chevron" aria-hidden>
-                    ▸
-                  </span>
-                  <span class="item-title">{item.title}</span>
-                </span>
-                <Show when={item.status}>
-                  <span class="item-status">{item.status}</span>
-                </Show>
-              </summary>
-              <div class="item-body">
-                <Show when={!isFileChange && item.detail}>
-                  <Markdown value={item.detail} class="item-text markdown" />
-                </Show>
-                <Show when={isFileChange && item.changes?.length}>
-                  <div class="file-change-list">
-                    <For each={item.changes}>
-                      {(change, index) => (
-                        <div class="file-change">
-                          <div class="file-change-header">
-                            <Show when={change.kind}>
-                              <span class="file-change-kind">
-                                {change.kind!.toUpperCase()}
-                              </span>
-                            </Show>
-                            <span class="file-change-path">{change.path}</span>
-                          </div>
-                          <Show when={change.diff}>
-                            <Markdown
-                              value={change.diff!}
-                              class="item-output markdown"
-                              codeBlock
-                            />
-                          </Show>
-                        </div>
-                      )}
-                    </For>
-                  </div>
-                </Show>
-                <Show when={isFileChange && !item.changes?.length && item.detail}>
-                  <Markdown value={item.detail} class="item-text markdown" />
-                </Show>
-                <Show when={item.output && (!isFileChange || !item.changes?.length)}>
-                  <Markdown
-                    value={item.output!}
-                    class="item-output markdown"
-                    codeBlock
-                  />
-                </Show>
-                <Show when={isFileChange && item.output && item.changes?.length}>
-                  <Markdown
-                    value={item.output!}
-                    class="item-output markdown"
-                    codeBlock
-                  />
-                </Show>
-              </div>
-            </details>
-          );
-        }}
-      </For>
-      <Show when={props.isThinking()}>
-        <div class="thinking">Codex is thinking...</div>
+    <div class="relative flex min-h-0 flex-1 overflow-hidden">
+      <Show when={hasRail()}>
+        <SessionMessageRail
+          messages={navEntries()}
+          currentId={activeUserMessageId() ?? undefined}
+          onMessageSelect={scrollToUserMessage}
+          class="z-10"
+        />
       </Show>
-      <Show when={!props.items().length}>
-        <div class="empty messages-empty">
-          Start a thread and send a prompt to the agent.
-        </div>
-      </Show>
-      <div ref={bottomRef} />
+      <div
+        ref={scrollRef}
+        class="flex min-h-0 flex-1 flex-col overflow-y-auto"
+        classList={{ "pl-10": hasRail() }}
+        onScroll={() => scheduleScrollSpy()}
+      >
+        <Show
+          when={userTurns().length > 0}
+          fallback={
+            <div class="flex flex-1 items-center justify-center p-6 text-14-regular text-text-weak">
+              Start a thread and send a prompt to the agent.
+            </div>
+          }
+        >
+          <For each={userTurns()}>
+            {(turn) => {
+              const isLastTurn = () => turn.id === lastUserTurnId();
+              const isWorking = () => props.isThinking() && isLastTurn();
+              const stepsExpanded = () => expandedSteps().has(turn.id);
+
+              return (
+                <SessionTurn
+                  userMessageId={turn.id}
+                  userMessageText={turn.text}
+                  userMessageTitle={turn.title}
+                  items={props.items}
+                  isWorking={() => isWorking()}
+                  stepsExpanded={stepsExpanded()}
+                  onStepsExpandedToggle={() => toggleStepsExpanded(turn.id)}
+                  onOpenFile={props.onOpenFile}
+                  pathPreview={props.pathPreview}
+                  classes={{
+                    root: "w-full",
+                    content: "px-6 py-4",
+                    container: "max-w-[50rem] mx-auto",
+                  }}
+                />
+              );
+            }}
+          </For>
+        </Show>
+        <div ref={bottomRef} class="h-20 shrink-0" />
+      </div>
     </div>
   );
 }

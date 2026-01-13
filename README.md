@@ -10,7 +10,7 @@ CodexMonitor is a macOS Tauri app for orchestrating multiple Codex agents across
 - Spawn one `codex app-server` per workspace and stream events over JSON-RPC.
 - Restore threads per workspace from the Codex rollout history (`thread/list`) and resume on selection.
 - Start agent threads, send messages, show reasoning/tool call items, and handle approvals.
-- Git diff sidebar with per-file +/- counts (libgit2).
+- VCS diff sidebar with per-file +/- counts (jj via `jj-lib`).
 - Skills menu that inserts `$skill` tokens into the composer.
 - Archive threads (removes from UI and calls `thread/archive`).
 - macOS overlay title bar with vibrancy effects.

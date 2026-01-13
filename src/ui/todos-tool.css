@@ -1,0 +1,17 @@
+[data-component="todos"] {
+  padding: 10px 12px 24px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  [data-slot="message-part-todo-content"] {
+    font-size: var(--font-size-small);
+    line-height: var(--line-height-large);
+    color: var(--text-base);
+
+    &[data-completed="true"] {
+      text-decoration: line-through;
+      color: var(--text-weaker);
+    }
+  }
+}

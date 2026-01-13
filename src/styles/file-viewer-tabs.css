@@ -1,0 +1,135 @@
+[data-component="file-viewer-tabs-panel"] {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: var(--background-base);
+}
+
+.file-viewer-tabs-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 12px;
+  color: var(--text-weak);
+}
+
+.file-viewer-tabs-empty-text {
+  font-size: 14px;
+}
+
+.file-viewer-tabs-empty-button {
+  padding: 6px 12px;
+  border-radius: 6px;
+  background-color: var(--surface-base);
+  border: 1px solid var(--border-weak-base);
+  color: var(--text-base);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.file-viewer-tabs-empty-button:hover {
+  background-color: var(--surface-raised-base-hover);
+}
+
+[data-component="file-tab-content"] {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.file-tab-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-weak-base);
+  background-color: var(--surface-base);
+}
+
+.file-tab-path {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-tab-directory {
+  color: var(--text-weak);
+}
+
+.file-tab-filename {
+  color: var(--text-strong);
+  font-weight: 500;
+}
+
+.file-tab-meta {
+  font-size: 11px;
+  color: var(--text-weak);
+  flex-shrink: 0;
+}
+
+.file-tab-error {
+  padding: 12px;
+  background-color: var(--surface-critical-weak);
+  color: var(--text-critical-base);
+  font-size: 12px;
+  border-bottom: 1px solid var(--border-critical-base);
+}
+
+.file-tab-loading,
+.file-tab-binary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  color: var(--text-weak);
+  font-size: 14px;
+}
+
+[data-component="file-tab-content"] .file-viewer-code {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  background-color: var(--background-base);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+[data-component="file-tab-content"] .file-viewer-spacer {
+  position: relative;
+}
+
+[data-component="file-tab-content"] .file-viewer-viewport {
+  position: absolute;
+  left: 0;
+  right: 0;
+}
+
+[data-component="file-tab-content"] .file-viewer-line {
+  display: flex;
+  padding: 0 12px;
+}
+
+[data-component="file-tab-content"] .file-viewer-lineno {
+  width: 48px;
+  flex-shrink: 0;
+  text-align: right;
+  padding-right: 16px;
+  color: var(--text-weaker);
+  user-select: none;
+}
+
+[data-component="file-tab-content"] .file-viewer-text {
+  flex: 1;
+  white-space: pre;
+  color: var(--text-base);
+}

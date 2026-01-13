@@ -1,0 +1,95 @@
+.compact-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  min-height: 0;
+}
+
+.compact-view {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.compact-nav {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding: 10px 12px 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(10, 14, 20, 0.55);
+  -webkit-app-region: no-drag;
+  flex-shrink: 0;
+}
+
+.compact-nav-button {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 10px 10px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: none;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+.compact-nav-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.compact-nav-button.active {
+  background: rgba(100, 200, 255, 0.14);
+  border-color: rgba(100, 200, 255, 0.22);
+}
+
+.compact-nav-button:disabled {
+  opacity: 0.4;
+  transform: none;
+  cursor: not-allowed;
+}
+
+.compact-nav-label {
+  font-size: 11px;
+  font-weight: 650;
+  color: rgba(255, 255, 255, 0.9);
+  letter-spacing: 0.02em;
+}
+
+.compact-nav-sublabel {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.55);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compact-nav-button.active .compact-nav-sublabel {
+  color: rgba(100, 200, 255, 0.9);
+}
+
+.right-panel.compact-right-panel {
+  border-left: none;
+}
+
+.main.compact-main .content {
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.main.compact-main .main-topbar {
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.main.compact-main .composer {
+  padding-left: 16px;
+  padding-right: 16px;
+}
+

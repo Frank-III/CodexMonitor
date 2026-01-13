@@ -1,13 +1,18 @@
-import { createSignal, createMemo } from "solid-js";
+import { createMemo } from "solid-js";
 import { createStore, produce } from "solid-js/store";
 import type {
+  AccessMode,
+  ApprovalPolicy,
+  Attachment,
   ApprovalRequest,
   ConversationItem,
   DebugEntry,
   ThreadSummary,
+  TokenUsage,
   WorkspaceInfo,
 } from "../types";
 import {
+  interruptTurn as interruptTurnService,
   respondToServerRequest,
   sendUserMessage as sendUserMessageService,
   startThread as startThreadService,
@@ -21,12 +26,106 @@ type ThreadState = {
   activeThreadIdByWorkspace: Record<string, string | null>;
   itemsByThread: Record<string, ConversationItem[]>;
   threadsByWorkspace: Record<string, ThreadSummary[]>;
-  threadStatusById: Record<string, { isProcessing: boolean; hasUnread: boolean }>;
+  forkPreambleByThreadId: Record<string, string | undefined>;
+  forkSourceByThreadId: Record<string, ForkSource | undefined>;
+  threadStatusById: Record<
+    string,
+    {
+      isProcessing: boolean;
+      hasUnread: boolean;
+      processingStartedAt: number | null;
+      lastDurationMs: number | null;
+      activeTurnId: string | null;
+      isInterrupting: boolean;
+    }
+  >;
   approvals: ApprovalRequest[];
+};
+
+const MAX_ITEMS_PER_THREAD = 200;
+const MAX_ITEM_TEXT = 20000;
+const TOOL_OUTPUT_RECENT_ITEMS = 40;
+const NO_TRUNCATE_TOOL_TYPES = new Set(["fileChange", "commandExecution"]);
+const MAX_FORK_CONTEXT_CHARS = 8000;
+const MAX_FORK_MESSAGES = 24;
+
+type ForkSource = {
+  sourceWorkspaceId: string;
+  sourceThreadId: string;
+  sourceThreadName: string;
 };
 
 function asString(value: unknown) {
   return typeof value === "string" ? value : value ? String(value) : "";
+}
+
+function truncateText(text: string, maxLength = MAX_ITEM_TEXT) {
+  if (text.length <= maxLength) {
+    return text;
+  }
+  const sliceLength = Math.max(0, maxLength - 3);
+  return `${text.slice(0, sliceLength)}...`;
+}
+
+function normalizeItem(item: ConversationItem): ConversationItem {
+  if (item.kind === "message") {
+    return { ...item, text: truncateText(item.text) };
+  }
+  if (item.kind === "reasoning") {
+    return {
+      ...item,
+      summary: truncateText(item.summary),
+      content: truncateText(item.content),
+    };
+  }
+  if (item.kind === "diff") {
+    return { ...item, diff: truncateText(item.diff) };
+  }
+  if (item.kind === "tool") {
+    const isNoTruncateTool = NO_TRUNCATE_TOOL_TYPES.has(item.toolType);
+    return {
+      ...item,
+      title: truncateText(item.title, 200),
+      detail: truncateText(item.detail, 2000),
+      output:
+        item.output && !isNoTruncateTool ? truncateText(item.output) : item.output,
+      changes: item.changes
+        ? item.changes.map((change) => ({
+            ...change,
+            diff:
+              !isNoTruncateTool && change.diff
+                ? truncateText(change.diff)
+                : change.diff,
+          }))
+        : item.changes,
+    };
+  }
+  return item;
+}
+
+function prepareThreadItems(items: ConversationItem[]) {
+  const normalized = items.map((item) => normalizeItem(item));
+  const limited =
+    normalized.length > MAX_ITEMS_PER_THREAD
+      ? normalized.slice(-MAX_ITEMS_PER_THREAD)
+      : normalized;
+  const cutoff = Math.max(0, limited.length - TOOL_OUTPUT_RECENT_ITEMS);
+  return limited.map((item, index) => {
+    if (index >= cutoff || item.kind !== "tool") {
+      return item;
+    }
+    const output = item.output ? truncateText(item.output) : item.output;
+    const changes = item.changes
+      ? item.changes.map((change) => ({
+          ...change,
+          diff: change.diff ? truncateText(change.diff) : change.diff,
+        }))
+      : item.changes;
+    if (output === item.output && changes === item.changes) {
+      return item;
+    }
+    return { ...item, output, changes };
+  });
 }
 
 function buildConversationItem(
@@ -239,18 +338,99 @@ function previewThreadName(text: string, fallback: string) {
   return trimmed.length > 38 ? `${trimmed.slice(0, 38)}...` : trimmed;
 }
 
+function forkNoticeItem(
+  threadId: string,
+  source: ForkSource,
+): Extract<ConversationItem, { kind: "tool" }> {
+  return {
+    id: `${threadId}-fork`,
+    kind: "tool",
+    toolType: "fork",
+    title: `Forked from ${source.sourceThreadName}`,
+    detail: "Context from the source thread will be included with your next message.",
+    status: "",
+    output: `Source thread id: ${source.sourceThreadId}`,
+  };
+}
+
+function buildForkPreamble(source: ForkSource, items: ConversationItem[]): string {
+  const messages = items.filter(
+    (item): item is Extract<ConversationItem, { kind: "message" }> =>
+      item.kind === "message"
+  );
+  const recent = messages.slice(-MAX_FORK_MESSAGES);
+
+  const segments: string[] = [];
+  let total = 0;
+  for (let index = recent.length - 1; index >= 0; index -= 1) {
+    const message = recent[index];
+    const label = message.role === "user" ? "User" : "Assistant";
+    const text = message.text.trim() || "[message]";
+    const segment = `${label}: ${text}`.trim();
+    if (!segment) {
+      continue;
+    }
+
+    const nextTotal = total + segment.length + (segments.length ? 2 : 0);
+    if (nextTotal > MAX_FORK_CONTEXT_CHARS) {
+      if (segments.length === 0) {
+        segments.push(truncateText(segment, MAX_FORK_CONTEXT_CHARS));
+      }
+      break;
+    }
+    segments.push(segment);
+    total = nextTotal;
+  }
+
+  segments.reverse();
+  const context = segments.join("\n\n").trim();
+  if (!context) {
+    return "";
+  }
+
+  return [
+    "You are continuing a chat that was forked from another thread.",
+    `Source thread: ${source.sourceThreadName} (${source.sourceThreadId}).`,
+    "Treat the following as prior conversation context:",
+    "",
+    context,
+  ].join("\n");
+}
+
 export type ThreadsStore = {
   activeThreadId: () => string | null;
   setActiveThreadId: (threadId: string | null, workspaceId?: string) => void;
   activeItems: () => ConversationItem[];
+  itemsByThread: () => Record<string, ConversationItem[]>;
   approvals: () => ApprovalRequest[];
   threadsByWorkspace: () => Record<string, ThreadSummary[]>;
-  threadStatusById: () => Record<string, { isProcessing: boolean; hasUnread: boolean }>;
+  threadStatusById: () => ThreadState["threadStatusById"];
   removeThread: (workspaceId: string, threadId: string) => void;
+  renameThread: (workspaceId: string, threadId: string, newName: string) => void;
   startThread: () => Promise<string | null>;
   startThreadForWorkspace: (workspaceId: string) => Promise<string | null>;
+  forkThreadInWorkspace: (
+    workspaceId: string,
+    sourceThreadId: string,
+    sourceThreadName: string,
+  ) => Promise<string | null>;
+  forkThreadToWorkspace: (
+    sourceWorkspaceId: string,
+    sourceThreadId: string,
+    sourceThreadName: string,
+    destinationWorkspaceId: string,
+  ) => Promise<string | null>;
   listThreadsForWorkspace: (workspace: WorkspaceInfo) => Promise<void>;
-  sendUserMessage: (text: string) => Promise<void>;
+  sendUserMessage: (
+    text: string,
+    options?: {
+      attachments?: Attachment[];
+      approvalPolicy?: ApprovalPolicy;
+      accessMode?: AccessMode;
+    },
+  ) => Promise<void>;
+  canStopActiveThread: () => boolean;
+  stopActiveThread: () => Promise<void>;
   handleApprovalDecision: (
     request: ApprovalRequest,
     decision: "accept" | "decline"
@@ -265,6 +445,7 @@ export type ThreadsStoreOptions = {
   model: () => string | null;
   effort: () => string | null;
   onMessageActivity?: () => void;
+  onTurnUsage?: (workspaceId: string, threadId: string, usage: TokenUsage) => void;
 };
 
 export function createThreadsStore(options: ThreadsStoreOptions): ThreadsStore {
@@ -276,12 +457,15 @@ export function createThreadsStore(options: ThreadsStoreOptions): ThreadsStore {
     model,
     effort,
     onMessageActivity,
+    onTurnUsage,
   } = options;
 
   const [state, setState] = createStore<ThreadState>({
     activeThreadIdByWorkspace: {},
     itemsByThread: {},
     threadsByWorkspace: {},
+    forkPreambleByThreadId: {},
+    forkSourceByThreadId: {},
     threadStatusById: {},
     approvals: [],
   });
@@ -301,16 +485,6 @@ export function createThreadsStore(options: ThreadsStoreOptions): ThreadsStore {
   });
 
   // Helper functions for state updates
-  function upsertItem(list: ConversationItem[], item: ConversationItem): ConversationItem[] {
-    const index = list.findIndex((entry) => entry.id === item.id);
-    if (index === -1) {
-      return [...list, item];
-    }
-    const next = [...list];
-    next[index] = { ...next[index], ...item };
-    return next;
-  }
-
   function setActiveThreadIdAction(workspaceId: string, threadId: string | null) {
     setState(
       produce((s) => {
@@ -334,7 +508,14 @@ export function createThreadsStore(options: ThreadsStoreOptions): ThreadsStore {
           name: `Agent ${list.length + 1}`,
         };
         s.threadsByWorkspace[workspaceId] = [thread, ...list];
-        s.threadStatusById[threadId] = { isProcessing: false, hasUnread: false };
+        s.threadStatusById[threadId] = {
+          isProcessing: false,
+          hasUnread: false,
+          processingStartedAt: null,
+          lastDurationMs: null,
+          activeTurnId: null,
+          isInterrupting: false,
+        };
         if (!s.activeThreadIdByWorkspace[workspaceId]) {
           s.activeThreadIdByWorkspace[workspaceId] = threadId;
         }
@@ -353,6 +534,8 @@ export function createThreadsStore(options: ThreadsStoreOptions): ThreadsStore {
             : s.activeThreadIdByWorkspace[workspaceId] ?? null;
         s.threadsByWorkspace[workspaceId] = filtered;
         delete s.itemsByThread[threadId];
+        delete s.forkPreambleByThreadId[threadId];
+        delete s.forkSourceByThreadId[threadId];
         delete s.threadStatusById[threadId];
         s.activeThreadIdByWorkspace[workspaceId] = nextActive;
       })
@@ -362,23 +545,101 @@ export function createThreadsStore(options: ThreadsStoreOptions): ThreadsStore {
   function markProcessing(threadId: string, isProcessing: boolean) {
     setState(
       produce((s) => {
-        if (!s.threadStatusById[threadId]) {
-          s.threadStatusById[threadId] = { isProcessing, hasUnread: false };
+        const existing = s.threadStatusById[threadId];
+        if (!existing) {
+          s.threadStatusById[threadId] = {
+            isProcessing,
+            hasUnread: false,
+            processingStartedAt: isProcessing ? Date.now() : null,
+            lastDurationMs: null,
+            activeTurnId: null,
+            isInterrupting: false,
+          };
+          return;
+        }
+
+        if (isProcessing) {
+          existing.isProcessing = true;
+          existing.processingStartedAt = Date.now();
+          existing.lastDurationMs = null;
+          existing.isInterrupting = false;
         } else {
-          s.threadStatusById[threadId].isProcessing = isProcessing;
+          const startedAt = existing.processingStartedAt;
+          existing.isProcessing = false;
+          existing.processingStartedAt = null;
+          existing.activeTurnId = null;
+          existing.isInterrupting = false;
+          existing.lastDurationMs =
+            typeof startedAt === "number" ? Date.now() - startedAt : null;
         }
       })
+    );
+  }
+
+  function markTurnStarted(threadId: string, turnId: string) {
+    setState(
+      produce((s) => {
+        const status = s.threadStatusById[threadId];
+        if (!status) {
+          s.threadStatusById[threadId] = {
+            isProcessing: true,
+            hasUnread: false,
+            processingStartedAt: Date.now(),
+            lastDurationMs: null,
+            activeTurnId: turnId,
+            isInterrupting: false,
+          };
+          return;
+        }
+
+        status.isProcessing = true;
+        status.processingStartedAt = Date.now();
+        status.lastDurationMs = null;
+        status.activeTurnId = turnId;
+        status.isInterrupting = false;
+      }),
+    );
+  }
+
+  function markTurnCompleted(threadId: string, turnId: string | null) {
+    setState(
+      produce((s) => {
+        const status = s.threadStatusById[threadId];
+        if (!status) {
+          return;
+        }
+
+        if (turnId && status.activeTurnId && status.activeTurnId !== turnId) {
+          return;
+        }
+
+        const startedAt = status.processingStartedAt;
+        status.isProcessing = false;
+        status.processingStartedAt = null;
+        status.activeTurnId = null;
+        status.isInterrupting = false;
+        status.lastDurationMs =
+          typeof startedAt === "number" ? Date.now() - startedAt : null;
+      }),
     );
   }
 
   function markUnread(threadId: string, hasUnread: boolean) {
     setState(
       produce((s) => {
-        if (!s.threadStatusById[threadId]) {
-          s.threadStatusById[threadId] = { isProcessing: false, hasUnread };
-        } else {
-          s.threadStatusById[threadId].hasUnread = hasUnread;
+        const existing = s.threadStatusById[threadId];
+        if (!existing) {
+          s.threadStatusById[threadId] = {
+            isProcessing: false,
+            hasUnread,
+            processingStartedAt: null,
+            lastDurationMs: null,
+            activeTurnId: null,
+            isInterrupting: false,
+          };
+          return;
         }
+        existing.hasUnread = hasUnread;
       })
     );
   }
@@ -396,6 +657,7 @@ export function createThreadsStore(options: ThreadsStoreOptions): ThreadsStore {
           s.itemsByThread[threadId] = [];
         }
         s.itemsByThread[threadId].push(message);
+        s.itemsByThread[threadId] = prepareThreadItems(s.itemsByThread[threadId]);
       })
     );
   }
@@ -430,6 +692,7 @@ export function createThreadsStore(options: ThreadsStoreOptions): ThreadsStore {
             text: delta,
           });
         }
+        s.itemsByThread[threadId] = prepareThreadItems(list);
       })
     );
   }
@@ -454,6 +717,7 @@ export function createThreadsStore(options: ThreadsStoreOptions): ThreadsStore {
             text,
           });
         }
+        s.itemsByThread[threadId] = prepareThreadItems(list);
       })
     );
   }
@@ -471,6 +735,7 @@ export function createThreadsStore(options: ThreadsStoreOptions): ThreadsStore {
         } else {
           Object.assign(list[index], item);
         }
+        s.itemsByThread[threadId] = prepareThreadItems(list);
       })
     );
   }
@@ -478,7 +743,7 @@ export function createThreadsStore(options: ThreadsStoreOptions): ThreadsStore {
   function setThreadItems(threadId: string, items: ConversationItem[]) {
     setState(
       produce((s) => {
-        s.itemsByThread[threadId] = items;
+        s.itemsByThread[threadId] = prepareThreadItems(items);
       })
     );
   }
@@ -504,6 +769,7 @@ export function createThreadsStore(options: ThreadsStoreOptions): ThreadsStore {
         } else {
           list[existingIndex] = nextItem;
         }
+        s.itemsByThread[threadId] = prepareThreadItems(list);
       })
     );
   }
@@ -526,6 +792,7 @@ export function createThreadsStore(options: ThreadsStoreOptions): ThreadsStore {
             content: "",
           });
         }
+        s.itemsByThread[threadId] = prepareThreadItems(list);
       })
     );
   }
@@ -548,6 +815,7 @@ export function createThreadsStore(options: ThreadsStoreOptions): ThreadsStore {
             content: delta,
           });
         }
+        s.itemsByThread[threadId] = prepareThreadItems(list);
       })
     );
   }
@@ -561,6 +829,7 @@ export function createThreadsStore(options: ThreadsStoreOptions): ThreadsStore {
         if (index >= 0 && list[index].kind === "tool") {
           const existing = list[index] as any;
           existing.output = (existing.output ?? "") + delta;
+          s.itemsByThread[threadId] = prepareThreadItems(list);
         }
       })
     );
@@ -668,15 +937,18 @@ export function createThreadsStore(options: ThreadsStoreOptions): ThreadsStore {
         // Ignore refresh errors
       }
     },
-    onTurnStarted: (workspaceId, threadId) => {
+    onTurnStarted: (workspaceId, threadId, turnId) => {
       ensureThread(workspaceId, threadId);
-      markProcessing(threadId, true);
+      markTurnStarted(threadId, turnId);
     },
-    onTurnCompleted: (_workspaceId, threadId) => {
-      markProcessing(threadId, false);
+    onTurnCompleted: (_workspaceId, threadId, turnId) => {
+      markTurnCompleted(threadId, turnId ?? null);
     },
     onTurnDiffUpdated: (_workspaceId, threadId, diff) => {
       setTurnDiff(threadId, diff);
+    },
+    onTurnUsage: (workspaceId, threadId, usage) => {
+      onTurnUsage?.(workspaceId, threadId, usage);
     },
   });
 
@@ -721,6 +993,81 @@ export function createThreadsStore(options: ThreadsStoreOptions): ThreadsStore {
     }
   }
 
+  async function forkThreadInWorkspace(
+    workspaceId: string,
+    sourceThreadId: string,
+    sourceThreadName: string,
+  ): Promise<string | null> {
+    ensureThread(workspaceId, sourceThreadId);
+    await resumeThreadForWorkspace(workspaceId, sourceThreadId);
+
+    const source: ForkSource = {
+      sourceWorkspaceId: workspaceId,
+      sourceThreadId,
+      sourceThreadName,
+    };
+    const preamble = buildForkPreamble(source, state.itemsByThread[sourceThreadId] ?? []);
+
+    const forkedThreadId = await startThreadForWorkspace(workspaceId);
+    if (!forkedThreadId) {
+      return null;
+    }
+
+    setState(
+      produce((s) => {
+        s.forkSourceByThreadId[forkedThreadId] = source;
+        s.forkPreambleByThreadId[forkedThreadId] = preamble || undefined;
+      }),
+    );
+
+    setThreadItems(forkedThreadId, [forkNoticeItem(forkedThreadId, source)]);
+    setThreadName(
+      workspaceId,
+      forkedThreadId,
+      previewThreadName(`Fork: ${sourceThreadName}`, `Agent ${forkedThreadId.slice(0, 4)}`),
+    );
+
+    return forkedThreadId;
+  }
+
+  async function forkThreadToWorkspace(
+    sourceWorkspaceId: string,
+    sourceThreadId: string,
+    sourceThreadName: string,
+    destinationWorkspaceId: string,
+  ): Promise<string | null> {
+    ensureThread(sourceWorkspaceId, sourceThreadId);
+    await resumeThreadForWorkspace(sourceWorkspaceId, sourceThreadId);
+
+    const source: ForkSource = {
+      sourceWorkspaceId,
+      sourceThreadId,
+      sourceThreadName,
+    };
+    const preamble = buildForkPreamble(source, state.itemsByThread[sourceThreadId] ?? []);
+
+    const forkedThreadId = await startThreadForWorkspace(destinationWorkspaceId);
+    if (!forkedThreadId) {
+      return null;
+    }
+
+    setState(
+      produce((s) => {
+        s.forkSourceByThreadId[forkedThreadId] = source;
+        s.forkPreambleByThreadId[forkedThreadId] = preamble || undefined;
+      }),
+    );
+
+    setThreadItems(forkedThreadId, [forkNoticeItem(forkedThreadId, source)]);
+    setThreadName(
+      destinationWorkspaceId,
+      forkedThreadId,
+      previewThreadName(`Fork: ${sourceThreadName}`, `Agent ${forkedThreadId.slice(0, 4)}`),
+    );
+
+    return forkedThreadId;
+  }
+
   async function startThread(): Promise<string | null> {
     const wsId = activeWorkspaceId();
     if (!wsId) return null;
@@ -755,7 +1102,11 @@ export function createThreadsStore(options: ThreadsStoreOptions): ThreadsStore {
       if (thread) {
         const items = buildItemsFromThread(thread);
         if (items.length > 0) {
-          setThreadItems(threadId, items);
+          const forkSource = state.forkSourceByThreadId[threadId];
+          const nextItems = forkSource
+            ? [forkNoticeItem(threadId, forkSource), ...items]
+            : items;
+          setThreadItems(threadId, nextItems);
         }
         const preview = asString(thread?.preview ?? "");
         if (preview) {
@@ -847,9 +1198,16 @@ export function createThreadsStore(options: ThreadsStoreOptions): ThreadsStore {
     }
   }
 
-  async function sendUserMessage(text: string): Promise<void> {
+  async function sendUserMessage(
+    text: string,
+    options?: {
+      attachments?: Attachment[];
+      approvalPolicy?: ApprovalPolicy;
+      accessMode?: AccessMode;
+    },
+  ): Promise<void> {
     const workspace = activeWorkspace();
-    if (!workspace || !text.trim()) return;
+    if (!workspace) return;
 
     let threadId = activeThreadId();
     if (!threadId) {
@@ -860,12 +1218,24 @@ export function createThreadsStore(options: ThreadsStoreOptions): ThreadsStore {
     }
 
     const messageText = text.trim();
-    addUserMessage(threadId, messageText);
-    setThreadName(
-      workspace.id,
-      threadId,
-      previewThreadName(messageText, `Agent ${threadId.slice(0, 4)}`)
-    );
+    const attachments = options?.attachments ?? [];
+    if (!messageText && attachments.length === 0) {
+      return;
+    }
+
+    const displayText =
+      messageText ||
+      (attachments.length > 1 ? `[image] ×${attachments.length}` : "[image]");
+
+    addUserMessage(threadId, displayText);
+
+    if (messageText) {
+      setThreadName(
+        workspace.id,
+        threadId,
+        previewThreadName(messageText, `Agent ${threadId.slice(0, 4)}`),
+      );
+    }
     markProcessing(threadId, true);
     try {
       onMessageActivity?.();
@@ -881,16 +1251,30 @@ export function createThreadsStore(options: ThreadsStoreOptions): ThreadsStore {
         workspaceId: workspace.id,
         threadId,
         text: messageText,
+        attachments: attachments.length ? attachments.map((a) => a.name) : null,
+        approvalPolicy: options?.approvalPolicy ?? null,
+        accessMode: options?.accessMode ?? null,
+        hasForkContext: !!state.forkPreambleByThreadId[threadId],
         model: model(),
         effort: effort(),
       },
     });
     try {
+      const forkPreamble = state.forkPreambleByThreadId[threadId] ?? "";
+      const serverText = forkPreamble
+        ? `${forkPreamble}\n\n---\n\nNEW USER MESSAGE:\n${displayText}`
+        : messageText;
       const response = await sendUserMessageService(
         workspace.id,
         threadId,
-        messageText,
-        { model: model(), effort: effort() }
+        serverText,
+        {
+          model: model(),
+          effort: effort(),
+          attachments,
+          approvalPolicy: options?.approvalPolicy,
+          accessMode: options?.accessMode,
+        },
       );
       onDebug?.({
         id: `${Date.now()}-server-turn-start`,
@@ -899,6 +1283,20 @@ export function createThreadsStore(options: ThreadsStoreOptions): ThreadsStore {
         label: "turn/start response",
         payload: response,
       });
+      if (forkPreamble) {
+        setState(
+          produce((s) => {
+            delete s.forkPreambleByThreadId[threadId];
+          }),
+        );
+        const source = state.forkSourceByThreadId[threadId];
+        if (source) {
+          upsertItemAction(threadId, {
+            ...forkNoticeItem(threadId, source),
+            detail: "Fork context included in the first message.",
+          });
+        }
+      }
     } catch (error) {
       onDebug?.({
         id: `${Date.now()}-client-turn-start-error`,
@@ -907,9 +1305,78 @@ export function createThreadsStore(options: ThreadsStoreOptions): ThreadsStore {
         label: "turn/start error",
         payload: error instanceof Error ? error.message : String(error),
       });
+      markProcessing(threadId, false);
       throw error;
     }
   }
+
+  const canStopActiveThread = () => {
+    const workspaceId = activeWorkspaceId();
+    const threadId = activeThreadId();
+    if (!workspaceId || !threadId) {
+      return false;
+    }
+
+    const status = state.threadStatusById[threadId];
+    return (
+      !!status?.isProcessing &&
+      !!status.activeTurnId &&
+      !status.isInterrupting
+    );
+  };
+
+  const stopActiveThread = async () => {
+    const workspaceId = activeWorkspaceId();
+    const threadId = activeThreadId();
+    if (!workspaceId || !threadId) {
+      return;
+    }
+
+    const status = state.threadStatusById[threadId];
+    const turnId = status?.activeTurnId ?? null;
+    if (!turnId || status?.isInterrupting) {
+      return;
+    }
+
+    setState(
+      produce((s) => {
+        const target = s.threadStatusById[threadId];
+        if (target) {
+          target.isInterrupting = true;
+        }
+      }),
+    );
+
+    onDebug?.({
+      id: `${Date.now()}-client-turn-interrupt`,
+      timestamp: Date.now(),
+      source: "client",
+      label: "turn/interrupt",
+      payload: { workspaceId, threadId, turnId },
+    });
+
+    try {
+      await interruptTurnService(workspaceId, threadId, turnId);
+    } catch (error) {
+      onDebug?.({
+        id: `${Date.now()}-client-turn-interrupt-error`,
+        timestamp: Date.now(),
+        source: "error",
+        label: "turn/interrupt error",
+        payload: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    } finally {
+      setState(
+        produce((s) => {
+          const target = s.threadStatusById[threadId];
+          if (target) {
+            target.isInterrupting = false;
+          }
+        }),
+      );
+    }
+  };
 
   async function handleApprovalDecision(
     request: ApprovalRequest,
@@ -945,18 +1412,43 @@ export function createThreadsStore(options: ThreadsStoreOptions): ThreadsStore {
     })();
   }
 
+  function renameThread(workspaceId: string, threadId: string, newName: string): void {
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+
+    onDebug?.({
+      id: `${Date.now()}-client-rename-thread`,
+      timestamp: Date.now(),
+      source: "client",
+      label: "thread/rename",
+      payload: { workspaceId, threadId, newName: trimmed },
+    });
+
+    setState("threadsByWorkspace", workspaceId, (threads) =>
+      threads?.map((thread) =>
+        thread.id === threadId ? { ...thread, name: trimmed } : thread,
+      ),
+    );
+  }
+
   return {
     activeThreadId,
     setActiveThreadId,
     activeItems,
+    itemsByThread: () => state.itemsByThread,
     approvals: () => state.approvals,
     threadsByWorkspace: () => state.threadsByWorkspace,
     threadStatusById: () => state.threadStatusById,
     removeThread,
+    renameThread,
     startThread,
     startThreadForWorkspace,
+    forkThreadInWorkspace,
+    forkThreadToWorkspace,
     listThreadsForWorkspace,
     sendUserMessage,
+    canStopActiveThread,
+    stopActiveThread,
     handleApprovalDecision,
   };
 }

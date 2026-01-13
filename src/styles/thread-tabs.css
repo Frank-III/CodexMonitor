@@ -1,0 +1,235 @@
+.chat-split {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+}
+
+.chat-pane {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+}
+
+.chat-pane.is-focused {
+  box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.12);
+}
+
+.chat-split-divider {
+  width: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+.thread-tabs {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(10, 14, 20, 0.32);
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-app-region: no-drag;
+}
+
+.thread-tabs.is-focused {
+  border-bottom-color: rgba(99, 102, 241, 0.25);
+}
+
+.thread-tabs-empty {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
+  padding: 0 6px;
+  white-space: nowrap;
+}
+
+.thread-tabs-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+  padding-left: 10px;
+  flex-shrink: 0;
+}
+
+.thread-tabs-action {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.75);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.thread-tabs-action:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.92);
+  border-color: rgba(255, 255, 255, 0.18);
+  transform: none;
+  box-shadow: none;
+}
+
+.thread-tabs-action svg {
+  width: 16px;
+  height: 16px;
+}
+
+.thread-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.72);
+  cursor: pointer;
+  max-width: 220px;
+  flex-shrink: 0;
+  user-select: none;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.thread-tab:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.thread-tab.active {
+  background: rgba(99, 102, 241, 0.14);
+  border-color: rgba(99, 102, 241, 0.28);
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.thread-tab.drop-before::before,
+.thread-tab.drop-after::after {
+  content: "";
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  background: rgba(99, 102, 241, 0.9);
+  border-radius: 2px;
+}
+
+.thread-tab.drop-before::before {
+  left: -3px;
+}
+
+.thread-tab.drop-after::after {
+  right: -3px;
+}
+
+.thread-tab-title {
+  font-size: 12px;
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.thread-tab-badge {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.thread-tab-badge.processing {
+  background: rgba(255, 159, 67, 0.95);
+  box-shadow: 0 0 10px rgba(255, 159, 67, 0.55);
+  animation: thread-tab-pulse 1.15s ease-in-out infinite;
+}
+
+.thread-tab-badge.unread {
+  background: rgba(77, 163, 255, 0.95);
+  box-shadow: 0 0 10px rgba(77, 163, 255, 0.5);
+}
+
+.thread-tab-close {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.55);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s ease, background 0.12s ease, color 0.12s ease;
+  flex-shrink: 0;
+}
+
+.thread-tab:hover .thread-tab-close,
+.thread-tab.active .thread-tab-close {
+  opacity: 1;
+}
+
+.thread-tab-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+  transform: none;
+  box-shadow: none;
+}
+
+.thread-tab-close svg {
+  width: 14px;
+  height: 14px;
+}
+
+.chat-pane-empty {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 24px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.chat-pane-empty-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.chat-pane-empty-subtitle {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+@keyframes thread-tab-pulse {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.9);
+    opacity: 0.6;
+  }
+}
+

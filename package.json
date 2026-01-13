@@ -10,17 +10,34 @@
     "tauri": "tauri"
   },
   "dependencies": {
+    "@corvu/resizable": "^0.2.5",
+    "@kobalte/core": "^0.13.11",
+    "@pierre/diffs": "^1.0.4",
+    "@solid-primitives/storage": "^4.3.3",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-dialog": "^2",
     "@tauri-apps/plugin-opener": "^2",
+    "@thisbeyond/solid-dnd": "^0.7.5",
+    "fuzzysort": "^3.1.0",
+    "ghostty-web": "^0.4.0",
+    "prismjs": "^1.30.0",
+    "remark-gfm": "^4.0.1",
+    "remeda": "^2.33.4",
     "solid-js": "^1.9.10",
+    "solid-jsx-oxc": "file:../../rs/solid-jsx-oxc/packages/solid-jsx-oxc",
+    "solid-list": "^0.3.0",
     "solid-markdown": "^2.1.1",
-    "remark-gfm": "^4.0.1"
+    "vite-plugin-solid": "^2.11.10"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.18",
     "@tauri-apps/cli": "^2",
+    "@types/prismjs": "^1.26.5",
+    "autoprefixer": "^10.4.23",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.18",
     "typescript": "~5.8.3",
-    "vite": "^7.0.4",
-    "vite-plugin-solid-oxc": "^0.1.0"
+    "vite": "npm:rolldown-vite@latest",
+    "vite-plugin-solid-oxc": "file:../../rs/solid-jsx-oxc/packages/vite-plugin-solid-oxc"
   }
 }

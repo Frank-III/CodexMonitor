@@ -10,15 +10,134 @@
   grid-row: 3;
 }
 
-.composer-input {
+/* Queue */
+.composer-queue {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.composer-queue-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.composer-queue-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.composer-queue-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.composer-queue-count {
+  min-width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(99, 102, 241, 0.28);
+  background: rgba(99, 102, 241, 0.12);
+  color: rgba(255, 255, 255, 0.75);
   display: grid;
-  grid-template-columns: 1fr auto;
+  place-items: center;
+  font-size: 10px;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+      "Courier New", monospace);
+}
+
+.composer-queue-clear {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.22);
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+}
+
+.composer-queue-clear:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.32);
+  color: rgba(255, 255, 255, 0.9);
+  transform: none;
+  box-shadow: none;
+}
+
+.composer-queue-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.composer-queue-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.composer-queue-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.75);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.composer-queue-remove {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.composer-queue-remove:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.25);
+  color: rgba(255, 255, 255, 0.9);
+  transform: none;
+  box-shadow: none;
+}
+
+.composer-input {
+  display: flex;
   gap: 12px;
   align-items: center;
 }
 
+.composer-input-area {
+  flex: 1;
+  position: relative;
+}
+
 .composer textarea {
-  height: 60px;
+  height: 44px;
+  min-height: 44px;
+  max-height: 240px;
   resize: none;
   border-radius: 0;
   border: none;
@@ -27,6 +146,8 @@
   padding: 8px 4px;
   font-size: 14px;
   -webkit-app-region: no-drag;
+  overflow-y: hidden;
+  transition: height 140ms ease;
 }
 
 .composer textarea:focus {
@@ -34,18 +155,28 @@
 }
 
 .composer-send {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
   border: none;
   background: rgba(255, 255, 255, 0.08);
   color: rgba(255, 255, 255, 0.8);
-  padding: 8px 14px;
+  padding: 0;
   border-radius: 999px;
-  font-size: 12px;
   cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 150ms ease, color 150ms ease, transform 150ms ease;
 }
 
 .composer-send:hover {
   background: rgba(255, 255, 255, 0.14);
   color: #fff;
+}
+
+.composer-send:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 .composer-bar {
@@ -120,6 +251,11 @@
   max-width: 90px;
 }
 
+.composer-select--access {
+  width: 110px;
+  max-width: 110px;
+}
+
 .composer-select--skill {
   width: 60px;
   max-width: 60px;
@@ -128,4 +264,305 @@
 .composer-select:focus {
   outline: none;
   color: #fff;
+}
+
+.composer textarea {
+  width: 100%;
+}
+
+.composer-suggestions-portal {
+  position: fixed;
+  z-index: 100;
+  pointer-events: none;
+  transform-origin: var(--composer-suggestions-transform-origin, top left);
+  transition: width 160ms ease;
+}
+
+.composer-suggestions-portal[data-state="open"] {
+  pointer-events: auto;
+}
+
+.composer-suggestions {
+  display: flex;
+  align-items: stretch;
+  max-height: var(--composer-suggestions-max-height, 240px);
+  overflow: hidden;
+  background: rgba(30, 32, 40, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  opacity: 0;
+  transform: translateY(var(--composer-suggestions-enter-translate-y, 6px)) scale(0.98);
+  transition: opacity 140ms ease, transform 140ms ease;
+  will-change: transform, opacity;
+}
+
+.composer-suggestions-portal[data-state="open"] .composer-suggestions {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.composer-suggestions-list {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+}
+
+.composer-suggestions-preview {
+  flex: none;
+  width: 0;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateX(8px);
+  transition: width 160ms ease, opacity 160ms ease, transform 160ms ease;
+}
+
+.composer-suggestions-preview[data-state="open"] {
+  width: 280px;
+  opacity: 1;
+  transform: translateX(0);
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(10, 12, 18, 0.35);
+}
+
+.composer-suggestions-preview-inner {
+  width: 280px;
+  max-height: var(--composer-suggestions-max-height, 240px);
+  overflow: auto;
+  padding: 10px 12px;
+}
+
+.composer-suggestions-preview-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 10px;
+}
+
+.composer-suggestions-preview-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 10px 0;
+}
+
+.composer-suggestions-preview-muted {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.composer-suggestions-preview-error {
+  font-size: 12px;
+  color: rgba(255, 160, 160, 0.9);
+  white-space: pre-wrap;
+}
+
+.composer-suggestion {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.9);
+  text-align: left;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background-color 140ms ease, color 140ms ease, transform 140ms ease;
+}
+
+.composer-suggestion:hover,
+.composer-suggestion.is-active {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.composer-suggestion-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  color: rgba(99, 102, 241, 0.9);
+}
+
+.composer-suggestion-icon {
+  display: inline-flex;
+  width: 14px;
+  height: 14px;
+  color: rgba(255, 255, 255, 0.6);
+  flex-shrink: 0;
+}
+
+.composer-suggestion-icon svg {
+  width: 14px;
+  height: 14px;
+}
+.composer-suggestion-description {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.composer-stop {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 150ms ease, transform 150ms ease;
+}
+
+.composer-stop:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.composer-stop:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.composer-stop:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.composer-stop-square {
+  width: 12px;
+  height: 12px;
+  background: rgba(239, 68, 68, 0.9);
+  border-radius: 2px;
+}
+
+.composer-send svg {
+  width: 18px;
+  height: 18px;
+}
+
+.composer.is-disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Drag and drop */
+.composer {
+  position: relative;
+}
+
+.composer.is-dragging {
+  outline: 2px dashed rgba(99, 102, 241, 0.6);
+  outline-offset: -2px;
+}
+
+.composer-drop-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(99, 102, 241, 0.1);
+  color: rgba(99, 102, 241, 0.9);
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* Attachments */
+.composer-attachments {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-bottom: 8px;
+}
+
+.composer-attachment {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  max-width: 120px;
+}
+
+.composer-attachment-preview {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.composer-attachment-name {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.composer-attachment-remove {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  background: rgba(239, 68, 68, 0.9);
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.composer-attachment-remove svg {
+  width: 10px;
+  height: 10px;
+  color: white;
+}
+
+.composer-attachment-remove:hover {
+  background: rgba(239, 68, 68, 1);
+}
+
+/* Attach button */
+.composer-attach {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 999px;
+  cursor: pointer;
+  flex-shrink: 0;
+  color: rgba(255, 255, 255, 0.6);
+  transition: background-color 150ms ease, color 150ms ease, transform 150ms ease;
+}
+
+.composer-attach:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.composer-attach:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.composer-attach:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.composer-attach svg {
+  width: 16px;
+  height: 16px;
 }

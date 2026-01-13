@@ -1,0 +1,107 @@
+[data-component="terminal-tabs"] {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  background-color: var(--background-stronger);
+
+  [data-slot="terminal-tabs-header"] {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    height: 40px;
+    padding: 0 8px;
+    border-bottom: 1px solid var(--border-weak-base);
+    background-color: var(--background-stronger);
+    overflow-x: auto;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  [data-slot="terminal-tabs-content"] {
+    flex: 1;
+    min-height: 0;
+    position: relative;
+  }
+
+  [data-slot="terminal-tab"] {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-medium);
+    color: var(--text-weak);
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+    white-space: nowrap;
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    &:hover {
+      background-color: var(--surface-raised-base-hover);
+      color: var(--text-base);
+    }
+
+    &[data-active] {
+      background-color: var(--surface-base);
+      color: var(--text-strong);
+    }
+  }
+
+  [data-slot="terminal-tab-close"] {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    opacity: 0;
+    transition: opacity 0.15s ease, background-color 0.15s ease;
+
+    &:hover {
+      background-color: var(--surface-raised-base-active);
+    }
+
+    [data-slot="terminal-tab"]:hover &,
+    [data-slot="terminal-tab"][data-active] & {
+      opacity: 1;
+    }
+  }
+
+  [data-slot="terminal-tabs-new"] {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    color: var(--icon-weak);
+    transition: background-color 0.15s ease, color 0.15s ease;
+
+    &:hover {
+      background-color: var(--surface-raised-base-hover);
+      color: var(--icon-base);
+    }
+  }
+
+  [data-slot="terminal-drag-overlay"] {
+    padding: 4px 12px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    background-color: var(--background-stronger);
+    border-radius: 6px;
+    box-shadow: var(--shadow-md);
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-medium);
+    color: var(--text-base);
+  }
+}
