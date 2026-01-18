@@ -16,8 +16,8 @@
   min-width: 86px;
   padding: 8px 10px;
   border-radius: 999px;
-  background: var(--surface-raised-base);
-  border: 1px solid var(--border-weak-base);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   color: var(--text-base);
   box-shadow: none;
   font-size: 12px;
@@ -31,12 +31,12 @@
 }
 
 .right-panel-tab:hover:not(.active) {
-  background: var(--surface-raised-base-hover);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .right-panel-tab.active {
-  background: var(--surface-interactive-weak);
-  border-color: var(--border-interactive-base);
+  background: rgba(99, 102, 241, 0.16);
+  border-color: rgba(99, 102, 241, 0.32);
   color: var(--text-strong);
 }
 

@@ -91,8 +91,8 @@
   gap: 8px;
   padding: 6px 10px;
   border-radius: 10px;
-  border: 1px solid var(--border-weak-base);
-  background: var(--surface-raised-base);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
   color: var(--text-base);
   cursor: pointer;
   max-width: 220px;
@@ -102,14 +102,14 @@
 }
 
 .thread-tab:hover {
-  background: var(--surface-raised-base-hover);
-  border-color: var(--border-hover);
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.14);
   color: var(--text-strong);
 }
 
 .thread-tab.active {
-  background: var(--surface-interactive-weak);
-  border-color: var(--border-interactive-base);
+  background: rgba(99, 102, 241, 0.14);
+  border-color: rgba(99, 102, 241, 0.28);
   color: var(--text-strong);
 }
 

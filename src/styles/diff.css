@@ -75,7 +75,7 @@
 }
 
 .diff-view-toggle-button.active {
-  background: var(--surface-interactive-weak);
+  background: rgba(100, 200, 255, 0.14);
   color: var(--text-strong);
 }
 

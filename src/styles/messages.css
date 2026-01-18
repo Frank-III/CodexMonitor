@@ -72,8 +72,8 @@
 .message-rail-button.is-active .message-rail-dot {
   width: 10px;
   height: 10px;
-  background: var(--icon-interactive-base);
-  box-shadow: 0 0 0 3px var(--surface-interactive-weak);
+  background: rgba(99, 102, 241, 0.95);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
 }
 
 .messages {
@@ -133,7 +133,7 @@
   max-width: 70%;
   padding: 10px 14px;
   border-radius: 14px;
-  background: var(--surface-raised-base);
+  background: rgba(255, 255, 255, 0.12);
   font-size: 14px;
   line-height: 1.45;
   overflow-wrap: anywhere;
@@ -141,7 +141,7 @@
 }
 
 .message.user .bubble {
-  background: var(--surface-interactive-base);
+  background: rgba(77, 153, 255, 0.45);
 }
 
 .item-card {
