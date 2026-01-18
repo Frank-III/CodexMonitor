@@ -39,15 +39,15 @@
   font-size: 12px;
   padding: 6px 10px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: var(--surface-raised-base);
+  border: 1px solid var(--border-weak-base);
 }
 
 .branch-pill--divergence {
-  background: rgba(99, 102, 241, 0.12);
-  border-color: rgba(99, 102, 241, 0.22);
-  color: rgba(255, 255, 255, 0.9);
-  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
+  background: var(--surface-interactive-weak);
+  border-color: var(--border-interactive-base);
+  color: var(--text-strong);
+  font-family: var(--font-family-mono);
   font-size: 11px;
 }
 
@@ -57,7 +57,7 @@
 }
 
 .workspace-meta {
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--text-weak);
   font-size: 11px;
   margin-top: 2px;
 }
