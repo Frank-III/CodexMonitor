@@ -1,8 +1,8 @@
-import { createEffect, onCleanup } from "solid-js";
+import { onMount, onCleanup } from "solid-js";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
 export function setupWindowDrag(targetId: string): void {
-  createEffect(() => {
+  onMount(() => {
     const el = document.getElementById(targetId);
     if (!el) {
       return;

@@ -1,6 +1,6 @@
-import { createEffect, onCleanup } from "solid-js";
+import { createEffect, on, onCleanup } from "solid-js";
 import { listen } from "@tauri-apps/api/event";
-import type { AppServerEvent, ApprovalRequest } from "../types";
+import type { AppServerEvent, ApprovalRequest, TokenUsage } from "../types";
 
 type AgentDelta = {
   workspaceId: string;
@@ -22,8 +22,8 @@ export type AppServerEventHandlers = {
   onAgentMessageDelta?: (event: AgentDelta) => void;
   onAgentMessageCompleted?: (event: AgentCompleted) => void;
   onAppServerEvent?: (event: AppServerEvent) => void;
-  onTurnStarted?: (workspaceId: string, threadId: string) => void;
-  onTurnCompleted?: (workspaceId: string, threadId: string) => void;
+  onTurnStarted?: (workspaceId: string, threadId: string, turnId: string) => void;
+  onTurnCompleted?: (workspaceId: string, threadId: string, turnId: string) => void;
   onItemStarted?: (
     workspaceId: string,
     threadId: string,
@@ -63,16 +63,21 @@ export type AppServerEventHandlers = {
     threadId: string,
     diff: string
   ) => void;
+  onTurnUsage?: (
+    workspaceId: string,
+    threadId: string,
+    usage: TokenUsage
+  ) => void;
 };
 
 export function setupAppServerEvents(handlers: () => AppServerEventHandlers): void {
-  createEffect(() => {
-    const h = handlers();
-    let unlisten: (() => void) | null = null;
-    let canceled = false;
+  createEffect(
+    on(handlers, (h) => {
+      let unlisten: (() => void) | null = null;
+      let canceled = false;
 
-    listen<AppServerEvent>("app-server-event", (event) => {
-      h.onAppServerEvent?.(event.payload);
+      listen<AppServerEvent>("app-server-event", (event) => {
+        h.onAppServerEvent?.(event.payload);
 
       const { workspace_id, message } = event.payload;
       const method = String(message.method ?? "");
@@ -112,8 +117,9 @@ export function setupAppServerEvents(handlers: () => AppServerEventHandlers): vo
         const params = message.params as Record<string, unknown>;
         const turn = params.turn as Record<string, unknown> | undefined;
         const threadId = String(turn?.threadId ?? turn?.thread_id ?? "");
-        if (threadId) {
-          h.onTurnStarted?.(workspace_id, threadId);
+        const turnId = String(turn?.id ?? "");
+        if (threadId && turnId) {
+          h.onTurnStarted?.(workspace_id, threadId, turnId);
         }
         return;
       }
@@ -122,8 +128,26 @@ export function setupAppServerEvents(handlers: () => AppServerEventHandlers): vo
         const params = message.params as Record<string, unknown>;
         const turn = params.turn as Record<string, unknown> | undefined;
         const threadId = String(turn?.threadId ?? turn?.thread_id ?? "");
+        const turnId = String(turn?.id ?? "");
         if (threadId) {
-          h.onTurnCompleted?.(workspace_id, threadId);
+          h.onTurnCompleted?.(workspace_id, threadId, turnId);
+        }
+        // Extract usage data if available
+        const usage = turn?.usage as Record<string, unknown> | undefined;
+        if (threadId && usage) {
+          const inputTokens = Number(usage.inputTokens ?? usage.input_tokens ?? 0);
+          const outputTokens = Number(usage.outputTokens ?? usage.output_tokens ?? 0);
+          const cacheReadTokens = Number(usage.cacheReadTokens ?? usage.cache_read_tokens ?? 0);
+          const cacheWriteTokens = Number(usage.cacheWriteTokens ?? usage.cache_write_tokens ?? 0);
+          if (inputTokens > 0 || outputTokens > 0) {
+            h.onTurnUsage?.(workspace_id, threadId, {
+              inputTokens,
+              outputTokens,
+              totalTokens: inputTokens + outputTokens,
+              cacheReadTokens: cacheReadTokens > 0 ? cacheReadTokens : undefined,
+              cacheWriteTokens: cacheWriteTokens > 0 ? cacheWriteTokens : undefined,
+            });
+          }
         }
         return;
       }
@@ -225,15 +249,16 @@ export function setupAppServerEvents(handlers: () => AppServerEventHandlers): vo
       }
     });
 
-    onCleanup(() => {
-      canceled = true;
-      if (unlisten) {
-        try {
-          unlisten();
-        } catch {
-          // Ignore unlisten errors when already removed.
+      onCleanup(() => {
+        canceled = true;
+        if (unlisten) {
+          try {
+            unlisten();
+          } catch {
+            // Ignore unlisten errors when already removed.
+          }
         }
-      }
-    });
-  });
+      });
+    })
+  );
 }

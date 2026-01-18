@@ -1,4 +1,4 @@
-import { createSignal, createMemo, createEffect } from "solid-js";
+import { createSignal, createMemo, createEffect, on } from "solid-js";
 import type { DebugEntry, SkillOption, WorkspaceInfo } from "../types";
 import { getSkillsList } from "../services/tauri";
 
@@ -72,20 +72,20 @@ export function createSkillsStore(options: {
     }
   }
 
-  // Auto-refresh when workspace changes
-  createEffect(() => {
-    const workspace = activeWorkspace();
-    const workspaceId = workspace?.id ?? null;
-    const isConnected = Boolean(workspace?.connected);
-
-    if (!workspaceId || !isConnected) {
-      return;
-    }
-    if (lastFetchedWorkspaceId === workspaceId && skills().length > 0) {
-      return;
-    }
-    refreshSkills();
-  });
+  createEffect(
+    on(
+      () => [activeWorkspace()?.id, activeWorkspace()?.connected] as const,
+      ([workspaceId, connected]) => {
+        if (!workspaceId || !connected) {
+          return;
+        }
+        if (lastFetchedWorkspaceId === workspaceId && skills().length > 0) {
+          return;
+        }
+        refreshSkills();
+      }
+    )
+  );
 
   const skillOptions = createMemo(() => skills().filter((skill) => skill.name));
 

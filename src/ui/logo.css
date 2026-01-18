@@ -1,0 +1,14 @@
+[data-component="logo-mark"] {
+  width: 16px;
+  height: 20px;
+}
+
+[data-component="logo-splash"] {
+  width: 80px;
+  height: 100px;
+}
+
+[data-component="logo"] {
+  width: 234px;
+  height: 42px;
+}

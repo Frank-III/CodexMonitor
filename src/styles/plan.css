@@ -1,0 +1,105 @@
+.plan-panel {
+  background: rgba(15, 18, 26, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 140px;
+  max-height: 420px;
+  overflow: hidden;
+}
+
+.plan-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.plan-progress {
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(99, 102, 241, 0.9);
+  background: rgba(99, 102, 241, 0.15);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.plan-dismiss {
+  margin-left: auto;
+  width: 20px;
+  height: 20px;
+  padding: 2px;
+}
+
+.plan-dismiss svg {
+  width: 14px;
+  height: 14px;
+}
+
+.plan-explanation {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.5;
+}
+
+.plan-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.plan-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.plan-step {
+  display: flex;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.plan-step.completed {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.plan-step.inProgress {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.plan-step-status {
+  font-family: "SF Mono", Menlo, monospace;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  flex-shrink: 0;
+}
+
+.plan-step.completed .plan-step-status {
+  color: rgba(34, 197, 94, 0.8);
+}
+
+.plan-step.inProgress .plan-step-status {
+  color: rgba(99, 102, 241, 0.9);
+}
+
+.plan-step-text {
+  flex: 1;
+}

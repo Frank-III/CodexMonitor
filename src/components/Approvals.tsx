@@ -1,17 +1,17 @@
-import { For, Show, type Accessor } from "solid-js";
+import { For, Show } from "solid-js";
 import type { ApprovalRequest } from "../types";
 
 type ApprovalsProps = {
-  approvals: Accessor<ApprovalRequest[]>;
+  approvals: ApprovalRequest[];
   onDecision: (request: ApprovalRequest, decision: "accept" | "decline") => void;
 };
 
 export function Approvals(props: ApprovalsProps) {
   return (
-    <Show when={props.approvals().length}>
+    <Show when={props.approvals.length}>
       <div class="approvals">
         <div class="approvals-title">Approvals</div>
-        <For each={props.approvals()}>
+        <For each={props.approvals}>
           {(request) => (
             <div class="approval-card">
               <div class="approval-method">{request.method}</div>

@@ -1,12 +1,23 @@
 import { defineConfig } from "vite";
-import solidOxc from "vite-plugin-solid-oxc";
+import solid from "vite-plugin-solid";
 
 // @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST;
 
 // https://vite.dev/config/
 export default defineConfig(async () => ({
-  plugins: [solidOxc()],
+  plugins: [
+    // Use the upstream Solid Vite plugin during development while `solid-jsx-oxc` is being refactored.
+    solid(),
+  ],
+
+  // Exclude @tauri-apps from pre-bundling to avoid "default" export resolution issues
+  optimizeDeps: {
+    // Force-prebundle CJS deps that are imported from ESM-only packages.
+    // Fixes: "The requested module ... does not provide an export named 'default'"
+    include: ["debug", "extend"],
+    exclude: ["@tauri-apps/api", "@tauri-apps/plugin-dialog", "@tauri-apps/plugin-opener"],
+  },
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //

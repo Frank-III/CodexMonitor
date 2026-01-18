@@ -1,15 +1,23 @@
 :root {
-  font-family: "SF Pro Text", "SF Pro Display", -apple-system, "Helvetica Neue",
-    sans-serif;
-  color: #e6e7ea;
-  background-color: transparent;
+  font-family: var(--font-family-sans);
+  color: var(--text-strong, #f1ecec);
+  background-color: var(--background-base, #131010);
+  --ui-scale: 1;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+  
+  /* Force dark color scheme */
+  color-scheme: dark;
 }
 
 * {
   box-sizing: border-box;
+}
+
+*[data-tauri-drag-region] {
+  -webkit-app-region: drag;
+  app-region: drag;
 }
 
 html,
@@ -19,19 +27,26 @@ body {
   overflow: hidden;
 }
 
+:root[data-codexmonitor-env="browser"],
+:root[data-codexmonitor-env="browser"] body {
+  background: #0b0f1a;
+}
+
 #root {
   height: 100vh;
   overflow: hidden;
 }
 
 .app {
-  height: 100vh;
-  display: grid;
-  grid-template-columns: 280px 1fr;
-  background: transparent;
+  height: calc(100vh / var(--ui-scale, 1));
+  width: calc(100vw / var(--ui-scale, 1));
+  display: flex;
+  background: var(--background-base);
   border-radius: 0;
   overflow: hidden;
   position: relative;
+  transform: scale(var(--ui-scale, 1));
+  transform-origin: top left;
 }
 
 .drag-strip {

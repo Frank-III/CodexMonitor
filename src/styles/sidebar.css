@@ -1,244 +1,54 @@
-.sidebar {
-  padding: 36px 20px 20px;
-  background: rgba(18, 18, 18, 0.35);
-  backdrop-filter: blur(32px) saturate(1.35);
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  -webkit-app-region: no-drag;
-  min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-}
+/* Sidebar - opencode-style two-panel layout */
 
-.sidebar-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  padding: 0 4px;
+[data-component="sidebar"] {
   -webkit-app-region: no-drag;
 }
 
-.subtitle {
-  font-size: 20px;
-  font-weight: 600;
-  margin-top: 6px;
+/* Left rail - 64px workspace avatars panel */
+.sidebar-left-rail {
+  background: var(--background-base);
 }
 
-.workspace-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  overflow-y: auto;
-  overflow-x: hidden;
-  -webkit-app-region: no-drag;
-  min-height: 0;
-  flex: 1;
+/* Secondary panel - project details and sessions */
+.sidebar-secondary-panel {
+  background: var(--background-stronger);
+  border: 1px solid var(--border-weak-base);
+  border-bottom: none;
 }
 
-.workspace-card {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  overflow-x: hidden;
+/* Session item states - opencode style */
+[data-component="sidebar"] .group\/session {
+  /* Hover and focus states */
 }
 
-.workspace-row {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 12px;
-  padding: 8px 4px;
-  border-radius: 0;
-  border: none;
-  background: transparent;
-  color: inherit;
-  text-align: left;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  -webkit-app-region: no-drag;
-  overflow-x: hidden;
+[data-component="sidebar"] .group\/session:hover,
+[data-component="sidebar"] .group\/session:focus-within {
+  background: var(--surface-raised-base-hover);
 }
 
-.workspace-row.active {
-  background: transparent;
-  border-left: 3px solid rgba(100, 200, 255, 0.8);
-  padding-left: 9px;
+[data-component="sidebar"] .group\/session.bg-surface-base-active,
+[data-component="sidebar"] [data-session-id].bg-surface-base-active {
+  background: var(--surface-base-active);
 }
 
-.workspace-row:hover {
-  background: rgba(255, 255, 255, 0.04);
+/* Traffic light clearance - 40px to clear macOS window controls */
+.traffic-light-clearance {
+  padding-top: 40px;
 }
 
-.workspace-row.active .workspace-name {
-  color: #ffffff;
+/* No-scrollbar utility for sidebar panels */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
-
-.workspace-name {
-  font-weight: 600;
-  font-size: 14px;
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
+/* Note: Text utilities (.text-12-regular, .text-14-medium, etc.) are defined in utilities.css */
 
-.connect {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.7);
-  align-self: center;
-  padding: 2px 8px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  -webkit-app-region: no-drag;
-}
-
-.workspace-add {
-  width: 22px;
-  height: 22px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.7);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  line-height: 1;
-  -webkit-app-region: no-drag;
-}
-
-.workspace-add:hover {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.12);
-}
-
-.workspace-name-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  justify-content: space-between;
-}
-
-.thread-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-left: 18px;
-}
-
-.thread-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 6px;
-  border-radius: 6px;
-  color: rgba(255, 255, 255, 0.72);
-  font-size: 12px;
-  cursor: pointer;
-  -webkit-app-region: no-drag;
-}
-
-.thread-status {
-  width: 6px;
-  height: 6px;
-  border-radius: 999px;
-  display: inline-block;
-  margin-left: 4px;
-}
-
-.thread-status.processing {
-  background: #ff9f43;
-  box-shadow: 0 0 8px rgba(255, 159, 67, 0.8);
-  animation: pulse 1.2s ease-in-out infinite;
-}
-
-.thread-status.unread {
-  background: #4da3ff;
-  box-shadow: 0 0 8px rgba(77, 163, 255, 0.7);
-}
-
-.thread-status.ready {
-  background: #3fe47e;
-  box-shadow: 0 0 8px rgba(63, 228, 126, 0.5);
-}
-
-.thread-row:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: #fff;
-}
-
-.thread-row.active {
-  background: rgba(100, 200, 255, 0.14);
-  color: #fff;
-}
-
-.thread-name {
-  flex: 1;
-}
-
-
-.thread-menu {
-  position: relative;
-}
-
-.thread-menu-trigger {
-  border: none;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 11px;
-  padding: 2px 4px;
-  cursor: pointer;
-  -webkit-app-region: no-drag;
-}
-
-.thread-menu-trigger:hover {
-  color: #fff;
-}
-
-.thread-menu-popup {
-  position: absolute;
-  right: 0;
-  top: 22px;
-  background: rgba(20, 24, 34, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
-  padding: 6px;
-  min-width: 120px;
-  z-index: 5;
-}
-
-.thread-menu-item {
-  width: 100%;
-  border: none;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.8);
-  padding: 6px 8px;
-  border-radius: 6px;
-  text-align: left;
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.thread-menu-item:hover {
-  background: rgba(255, 90, 90, 0.15);
-  color: #ff7a7a;
-}
-
-.thread-more {
-  border: none;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 11px;
-  text-align: left;
-  padding: 2px 6px 2px 16px;
-  cursor: pointer;
-  -webkit-app-region: no-drag;
-}
-
-.thread-more:hover {
-  color: rgba(255, 255, 255, 0.8);
-}
-
+/* Status dot pulse animation */
 @keyframes pulse {
   0% {
     transform: scale(0.9);
@@ -252,4 +62,8 @@
     transform: scale(0.9);
     opacity: 0.6;
   }
+}
+
+.animate-pulse {
+  animation: pulse 1.2s ease-in-out infinite;
 }

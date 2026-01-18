@@ -1,0 +1,94 @@
+.compact-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  min-height: 0;
+}
+
+.compact-view {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.compact-nav {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding: 10px 12px 12px;
+  border-top: 1px solid var(--border-weak-base);
+  background: var(--background-stronger);
+  -webkit-app-region: no-drag;
+  flex-shrink: 0;
+}
+
+.compact-nav-button {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 10px 10px;
+  border-radius: 14px;
+  background: var(--surface-base);
+  border: 1px solid var(--border-weak-base);
+  box-shadow: none;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+.compact-nav-button:hover:not(:disabled) {
+  background: var(--surface-base-hover);
+}
+
+.compact-nav-button.active {
+  background: var(--surface-base-interactive-active);
+  border-color: var(--border-selected);
+}
+
+.compact-nav-button:disabled {
+  opacity: 0.4;
+  transform: none;
+  cursor: not-allowed;
+}
+
+.compact-nav-label {
+  font-size: 11px;
+  font-weight: 650;
+  color: var(--text-strong);
+  letter-spacing: 0.02em;
+}
+
+.compact-nav-sublabel {
+  font-size: 10px;
+  color: var(--text-weak);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compact-nav-button.active .compact-nav-sublabel {
+  color: var(--text-selected);
+}
+
+.right-panel.compact-right-panel {
+  border-left: none;
+}
+
+.main.compact-main .content {
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.main.compact-main .main-topbar {
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.main.compact-main .composer {
+  padding-left: 16px;
+  padding-right: 16px;
+}
+

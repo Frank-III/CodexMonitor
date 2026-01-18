@@ -1,12 +1,13 @@
 .main {
-  display: grid;
-  grid-template-columns: 1fr 230px;
-  grid-template-rows: auto 1fr auto auto;
+  display: flex;
+  flex-direction: column;
   gap: 0;
   padding: 0;
   position: relative;
   -webkit-app-region: no-drag;
   min-height: 0;
+  height: 100%;
+  width: 100%;
 }
 
 .main-header {
@@ -28,11 +29,10 @@
   justify-content: space-between;
   align-items: center;
   padding: 10px 32px 8px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(10, 14, 20, 0.45);
+  border-bottom: 1px solid var(--border-weak-base);
+  background: var(--background-stronger);
   -webkit-app-region: no-drag;
-  grid-column: 1;
-  grid-row: 1;
+  flex-shrink: 0;
 }
 
 .branch-pill {
@@ -41,6 +41,14 @@
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.branch-pill--divergence {
+  background: rgba(99, 102, 241, 0.12);
+  border-color: rgba(99, 102, 241, 0.22);
+  color: rgba(255, 255, 255, 0.9);
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
+  font-size: 11px;
 }
 
 .workspace-title {
@@ -62,24 +70,8 @@
 .content {
   display: flex;
   min-height: 0;
+  flex: 1;
   -webkit-app-region: no-drag;
   padding: 0 0 0 32px;
-  grid-column: 1;
-  grid-row: 2;
-}
-
-.right-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding-left: 0;
-  border-left: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(9, 12, 20, 0.4);
-  height: 100%;
-  padding-top: 0;
-  padding-bottom: 0;
-  grid-column: 2;
-  grid-row: 1 / 5;
-  min-height: 0;
   overflow: hidden;
 }

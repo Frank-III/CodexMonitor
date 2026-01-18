@@ -1,4 +1,4 @@
-import { createSignal, createMemo, createEffect } from "solid-js";
+import { createSignal, createMemo, createEffect, on } from "solid-js";
 import type { DebugEntry, ModelOption, WorkspaceInfo } from "../types";
 import { getModelList } from "../services/tauri";
 
@@ -109,36 +109,36 @@ export function createModelsStore(options: {
     }
   }
 
-  // Auto-refresh when workspace changes
-  createEffect(() => {
-    const workspace = activeWorkspace();
-    const workspaceId = workspace?.id ?? null;
-    const isConnected = Boolean(workspace?.connected);
+  createEffect(
+    on(
+      () => [activeWorkspace()?.id, activeWorkspace()?.connected] as const,
+      ([workspaceId, connected]) => {
+        if (!workspaceId || !connected) {
+          return;
+        }
+        if (lastFetchedWorkspaceId === workspaceId && models().length > 0) {
+          return;
+        }
+        refreshModels();
+      }
+    )
+  );
 
-    if (!workspaceId || !isConnected) {
-      return;
-    }
-    if (lastFetchedWorkspaceId === workspaceId && models().length > 0) {
-      return;
-    }
-    refreshModels();
-  });
-
-  // Reset effort when model changes
-  createEffect(() => {
-    const model = selectedModel();
-    if (!model) {
-      return;
-    }
-    const effort = selectedEffort();
-    if (
-      effort &&
-      model.supportedReasoningEfforts.some((e) => e.reasoningEffort === effort)
-    ) {
-      return;
-    }
-    setSelectedEffort(model.defaultReasoningEffort ?? null);
-  });
+  createEffect(
+    on(selectedModel, (model) => {
+      if (!model) {
+        return;
+      }
+      const effort = selectedEffort();
+      if (
+        effort &&
+        model.supportedReasoningEfforts.some((e) => e.reasoningEffort === effort)
+      ) {
+        return;
+      }
+      setSelectedEffort(model.defaultReasoningEffort ?? null);
+    })
+  );
 
   return {
     models,
