@@ -1042,19 +1042,22 @@ function App() {
   };
 
   const handleResizableSizesChange = (next: number[]) => {
+    // Ensure we have a plain array of numbers (corvu may pass proxy objects)
+    const nextArray = [...next].map(Number);
+
     if (workspacesStore.activeWorkspace()) {
-      if (!sizesMatch(sizes(), next)) {
-        setSizes(next);
+      if (!sizesMatch(sizes(), nextArray)) {
+        setSizes(nextArray);
       }
       return;
     }
 
-    if (next.length !== 2) {
+    if (nextArray.length !== 2) {
       return;
     }
 
     const current = sizes();
-    const sidebar = next[0];
+    const sidebar = nextArray[0];
     const right = current[2];
     const main = 1 - sidebar - right;
     const updated = [sidebar, main, right];
