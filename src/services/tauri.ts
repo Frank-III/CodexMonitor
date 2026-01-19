@@ -3,17 +3,21 @@ import type {
   AccessMode,
   AppSettings,
   CodexDoctorResult,
+  ConflictInfo,
   GitHubIssuesResponse,
-  WorkspaceSettings,
-  WorktreeMode,
-  WorkspaceInfo,
+  JjBookmarkInfo,
+  JjOperation,
+  LandResult,
+  SyncResult,
   VcsFileStatus,
   VcsLogResponse,
-  WorktreeDivergence,
-  JjBookmarkInfo,
   WorkspaceDirTree,
   WorkspaceFileContent,
+  WorkspaceInfo,
   WorkspacePathItem,
+  WorkspaceSettings,
+  WorktreeDivergence,
+  WorktreeMode,
 } from "../types";
 
 export async function logFrontendError(message: string, stack?: string): Promise<void> {
@@ -60,12 +64,12 @@ export async function addWorktree(
   });
 }
 
-export async function landWorktree(id: string): Promise<string> {
-  return invoke<string>("land_worktree", { id });
+export async function landWorktree(id: string): Promise<LandResult> {
+  return invoke<LandResult>("land_worktree", { id });
 }
 
-export async function syncWorktree(id: string): Promise<void> {
-  return invoke("sync_worktree", { id });
+export async function syncWorktree(id: string): Promise<SyncResult> {
+  return invoke<SyncResult>("sync_worktree", { id });
 }
 
 export async function syncWorktreeStack(id: string): Promise<void> {
@@ -74,6 +78,29 @@ export async function syncWorktreeStack(id: string): Promise<void> {
 
 export async function landWorktreeStack(id: string): Promise<string> {
   return invoke<string>("land_worktree_stack", { id });
+}
+
+// JJ Operation History & Undo
+
+export async function getJjOperations(
+  workspaceId: string,
+  limit?: number,
+): Promise<JjOperation[]> {
+  return invoke<JjOperation[]>("get_jj_operations", { workspaceId, limit: limit ?? null });
+}
+
+export async function restoreJjOperation(
+  workspaceId: string,
+  opId: string,
+): Promise<void> {
+  return invoke("restore_jj_operation", { workspaceId, opId });
+}
+
+export async function checkConflicts(
+  workspaceId: string,
+  revset: string,
+): Promise<ConflictInfo> {
+  return invoke<ConflictInfo>("check_conflicts", { workspaceId, revset });
 }
 
 export async function runWorkspaceSetup(workspaceId: string): Promise<string> {

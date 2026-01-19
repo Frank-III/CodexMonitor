@@ -1,4 +1,5 @@
 use std::io::{Read, Write};
+use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -34,8 +35,34 @@ fn terminal_key(workspace_id: &str, terminal_id: &str) -> String {
     format!("{workspace_id}:{terminal_id}")
 }
 
+fn shell_fallback() -> String {
+    if cfg!(target_os = "windows") {
+        std::env::var("COMSPEC").unwrap_or_else(|_| "cmd.exe".to_string())
+    } else if cfg!(target_os = "macos") {
+        "/bin/zsh".to_string()
+    } else {
+        "/bin/sh".to_string()
+    }
+}
+
 fn shell_path() -> String {
-    std::env::var("SHELL").unwrap_or_else(|_| "/bin/zsh".to_string())
+    const BLACKLIST: [&str; 2] = ["fish", "nu"];
+
+    if let Ok(value) = std::env::var("SHELL") {
+        let trimmed = value.trim();
+        if !trimmed.is_empty() {
+            let basename = Path::new(trimmed)
+                .file_name()
+                .and_then(|name| name.to_str())
+                .unwrap_or(trimmed)
+                .trim_end_matches(".exe");
+            if !BLACKLIST.contains(&basename) {
+                return trimmed.to_string();
+            }
+        }
+    }
+
+    shell_fallback()
 }
 
 fn spawn_terminal_reader(app: AppHandle, workspace_id: String, terminal_id: String, mut reader: Box<dyn Read + Send>) {
@@ -134,9 +161,12 @@ pub(crate) async fn terminal_open(
         .openpty(size)
         .map_err(|e| format!("Failed to open pty: {e}"))?;
 
-    let mut cmd = CommandBuilder::new(shell_path());
+    let shell = shell_path();
+    let mut cmd = CommandBuilder::new(&shell);
     cmd.cwd(cwd);
-    cmd.arg("-i");
+    if shell.ends_with("sh") {
+        cmd.arg("-l");
+    }
     cmd.env("TERM", "xterm-256color");
     if let Some(path_env) = build_default_path_env() {
         cmd.env("PATH", path_env);

@@ -1,5 +1,7 @@
+import { Dialog as KobalteDialog } from "@kobalte/core/dialog";
 import { Show, createMemo } from "solid-js";
 import { createStore } from "solid-js/store";
+import { Button, Dialog, TextField } from "../ui";
 
 type CloneRepositoryPromptProps = {
   open: boolean;
@@ -158,128 +160,76 @@ function CloneRepositoryPromptContent(props: CloneRepositoryPromptProps) {
   };
 
   return (
-    <div
-      class="absolute inset-0 z-50 flex items-center justify-center bg-[rgba(0,0,0,0.45)] backdrop-blur-[12px] backdrop-saturate-[120%] [-webkit-app-region:no-drag]"
-      role="presentation"
-      onMouseDown={(event) => {
-        if (event.currentTarget === event.target) {
-          props.onClose();
-        }
+    <KobalteDialog
+      modal
+      open={true}
+      onOpenChange={(open) => {
+        if (open) return;
+        props.onClose();
       }}
     >
-      <div
-        class="w-[calc(100vw-40px)] max-w-[620px] max-h-[calc(100vh-80px)] overflow-auto rounded-[14px] border border-white/10 bg-[rgba(18,22,32,0.98)] p-[14px] shadow-[0_18px_36px_rgba(0,0,0,0.35)]"
-        role="dialog"
-        aria-modal="true"
-      >
-          <div class="mb-[10px] flex items-center justify-between gap-3">
-            <div class="text-[12px] font-bold uppercase tracking-[0.1em] text-white/70">
-              Clone Repository
-            </div>
-            <button
-              type="button"
-              class="ghost icon-button"
-              onClick={props.onClose}
-              aria-label="Close clone prompt"
-            >
-              <svg viewBox="0 0 24 24" fill="none" aria-hidden>
-                <path
-                  d="M6 6l12 12M18 6L6 18"
-                  stroke="currentColor"
-                  stroke-width="1.6"
-                  stroke-linecap="round"
-                />
-              </svg>
-            </button>
-          </div>
-
-          <div class="px-[2px] pb-[10px] pt-[6px] text-[12px] leading-relaxed text-white/70">
-            <div class="rounded-[12px] border border-white/10 bg-white/5 p-[10px] text-[11px] text-white/60">
-              Uses <code class="text-white/80">jj git clone</code> and then adds the new directory
-              as a workspace.
+      <KobalteDialog.Portal>
+        <KobalteDialog.Overlay data-component="dialog-overlay" />
+        <Dialog title="Clone repository">
+          <div class="flex flex-col gap-4 px-6 pb-6">
+            <div class="rounded-md bg-surface-base px-3 py-2 text-13-regular text-text-weak">
+              Uses <code class="font-mono text-text-base">jj git clone</code> and then adds the new
+              directory as a workspace.
             </div>
 
-            <div class="mt-[12px] flex flex-col gap-[12px]">
-              <div class="flex flex-col gap-[6px]">
-                <label class="text-[11px] text-white/70" for="clone-repo-url">
-                  Repository URL
-                </label>
-                <input
-                  id="clone-repo-url"
-                  class="rounded-[10px] border border-white/15 bg-white/5 px-[10px] py-[8px] font-mono text-[12px] text-white/90 outline-none focus:border-indigo-400/60 focus:ring-2 focus:ring-indigo-400/20"
-                  type="text"
-                  value={state.url}
-                  placeholder="https://github.com/org/repo.git"
-                  onInput={(event) => setState("url", event.currentTarget.value)}
-                  spellcheck={false}
-                />
-              </div>
+            <TextField
+              label="Repository URL"
+              value={state.url}
+              onChange={(value) => setState("url", value)}
+              placeholder="https://github.com/org/repo.git"
+              spellcheck={false}
+              class="font-mono"
+              autofocus
+            />
 
-              <div class="grid grid-cols-1 gap-[10px] sm:grid-cols-[1fr_auto] sm:items-end">
-                <div class="flex flex-col gap-[6px]">
-                  <label class="text-[11px] text-white/70" for="clone-folder-name">
-                    Folder name
-                  </label>
-	                <input
-	                  id="clone-folder-name"
-	                  class="rounded-[10px] border border-white/15 bg-white/5 px-[10px] py-[8px] font-mono text-[12px] text-white/90 outline-none focus:border-indigo-400/60 focus:ring-2 focus:ring-indigo-400/20"
-	                  type="text"
-	                  value={effectiveFolderName()}
-	                  placeholder="repo-name"
-	                  onInput={(event) => {
-	                    setState("folderNameDirty", true);
-	                    setState("folderName", event.currentTarget.value);
-	                  }}
-	                  spellcheck={false}
-	                />
-                </div>
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+              <TextField
+                label="Folder name"
+                value={effectiveFolderName()}
+                onChange={(value) => {
+                  setState("folderNameDirty", true);
+                  setState("folderName", value);
+                }}
+                placeholder="repo-name"
+                spellcheck={false}
+                class="font-mono"
+              />
+              <Button variant="secondary" size="large" onClick={handlePickParentDirectory} disabled={state.isCloning}>
+                Choose folder…
+              </Button>
+            </div>
 
-                <button
-                  type="button"
-                  class="secondary"
-                  onClick={handlePickParentDirectory}
-                  disabled={state.isCloning}
-                >
-                  Choose folder…
-                </button>
-              </div>
-
-              <div class="rounded-[12px] border border-white/10 bg-white/5 p-[10px] text-[11px] text-white/60">
-                <div class="mb-[4px] text-[10px] uppercase tracking-[0.1em] text-white/45">
-                  Destination
-                </div>
-                <code class="text-white/80">
-                  {destinationPath() || "(choose a folder)"}
-                </code>
-              </div>
+            <div class="rounded-md bg-surface-base px-3 py-2 text-13-regular text-text-weak">
+              <div class="text-12-medium uppercase tracking-wide text-text-weak">Destination</div>
+              <code class="mt-1 block break-words font-mono text-text-base">
+                {destinationPath() || "(choose a folder)"}
+              </code>
             </div>
 
             <Show when={state.error}>
-              <div class="mt-[12px] whitespace-pre-wrap break-words rounded-[10px] border border-red-300/20 bg-red-300/10 p-[10px] text-[12px] text-red-200">
-                {state.error}
-              </div>
+              {(error) => (
+                <div class="rounded-md bg-surface-critical-weak px-3 py-2 text-13-regular text-text-on-critical-weak">
+                  {error()}
+                </div>
+              )}
             </Show>
-          </div>
 
-          <div class="flex justify-end gap-[10px] border-t border-white/10 pt-[8px]">
-            <button
-              type="button"
-              class="secondary"
-              onClick={props.onClose}
-              disabled={state.isCloning}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              class="primary"
-              onClick={handleClone}
-              disabled={!canClone()}
-            >
-              {state.isCloning ? "Cloning…" : "Clone"}
-            </button>
+            <div class="flex justify-end gap-2 pt-2">
+              <Button variant="ghost" onClick={props.onClose} disabled={state.isCloning}>
+                Cancel
+              </Button>
+              <Button variant="primary" onClick={handleClone} disabled={!canClone()}>
+                {state.isCloning ? "Cloning…" : "Clone"}
+              </Button>
+            </div>
           </div>
-        </div>
-      </div>
+        </Dialog>
+      </KobalteDialog.Portal>
+    </KobalteDialog>
   );
 }

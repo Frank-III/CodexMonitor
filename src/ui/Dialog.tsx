@@ -6,13 +6,14 @@ export interface DialogProps extends ParentProps {
   title?: JSXElement
   description?: JSXElement
   action?: JSXElement
+  style?: ComponentProps<"div">["style"]
   class?: ComponentProps<"div">["class"]
   classList?: ComponentProps<"div">["classList"]
 }
 
 export function Dialog(props: DialogProps) {
   return (
-    <div data-component="dialog">
+    <div data-component="dialog" style={props.style}>
       <div data-slot="dialog-container">
         <Kobalte.Content
           data-slot="dialog-content"

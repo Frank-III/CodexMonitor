@@ -1,6 +1,7 @@
 import { For, Show, createMemo } from "solid-js";
 import { createStore } from "solid-js/store";
 import type { JjBookmarkInfo, VcsLogEntry, WorkspaceInfo, WorktreeDivergence } from "../types";
+import { Button, IconButton } from "../ui";
 
 type JjInfoPanelProps = {
   workspace: WorkspaceInfo;
@@ -265,14 +266,15 @@ export function JjInfoPanel(props: JjInfoPanelProps) {
             disabled={baseIsBusy()}
             aria-label="Set divergence base revset"
           />
-          <button
+          <Button
             type="button"
-            class="ghost info-action"
+            variant="secondary"
+            size="small"
             disabled={baseIsBusy() || !baseIsDirty()}
             onClick={() => void runBaseAction()}
           >
             {state.baseAction ? "Setting…" : "Set"}
-          </button>
+          </Button>
         </div>
         <div class="info-base-presets" role="list" aria-label="Base revset presets">
           <For each={basePresets()}>
@@ -291,15 +293,14 @@ export function JjInfoPanel(props: JjInfoPanelProps) {
         <div class="info-kv">
           <span class="info-kv-label">Recent</span>
           <span class="info-kv-value">
-            <button
+            <IconButton
               type="button"
-              class="ghost info-action"
+              icon="refresh"
+              variant="ghost"
               onClick={props.onRefreshBaseRevisions}
               disabled={props.baseRevisionsIsLoading}
               title="Refresh revisions"
-            >
-              ↻
-            </button>
+            />
           </span>
         </div>
         <Show when={props.baseRevisionsError}>
@@ -348,17 +349,14 @@ export function JjInfoPanel(props: JjInfoPanelProps) {
           {(err) => <div class="info-error">{err()}</div>}
         </Show>
         <div class="info-actions-row">
-          <button
-            type="button"
-            class="ghost info-action"
-            onClick={props.onEditBase}
-          >
+          <Button type="button" variant="ghost" size="small" onClick={props.onEditBase}>
             Base…
-          </button>
+          </Button>
           <Show when={isWorktree()}>
-            <button
+            <Button
               type="button"
-              class="ghost info-action"
+              variant="ghost"
+              size="small"
               onClick={props.onSyncWorktree}
               disabled={!canSync()}
               title={
@@ -368,34 +366,39 @@ export function JjInfoPanel(props: JjInfoPanelProps) {
               }
             >
               Sync
-            </button>
+            </Button>
             <Show when={(props.syncStackCount ?? 0) > 0 && props.onSyncStack}>
-              <button
+              <Button
                 type="button"
-                class="ghost info-action"
+                variant="ghost"
+                size="small"
                 onClick={() => props.onSyncStack?.()}
                 title="Sync this worktree and downstream worktrees"
               >
                 Sync stack <span class="info-mono">+{props.syncStackCount}</span>
-              </button>
+              </Button>
             </Show>
             <Show when={(props.landStackCount ?? 0) > 0 && props.onLandStack}>
-              <button
+              <Button
                 type="button"
-                class="ghost info-action info-action-destructive"
+                variant="ghost"
+                size="small"
+                class="info-action-destructive"
                 onClick={() => props.onLandStack?.()}
                 title="Land this worktree and downstream worktrees"
               >
                 Land stack <span class="info-mono">+{props.landStackCount}</span>
-              </button>
+              </Button>
             </Show>
-            <button
+            <Button
               type="button"
-              class="ghost info-action info-action-destructive"
+              variant="ghost"
+              size="small"
+              class="info-action-destructive"
               onClick={props.onLandWorktree}
             >
               Land…
-            </button>
+            </Button>
           </Show>
         </div>
       </div>
@@ -404,13 +407,9 @@ export function JjInfoPanel(props: JjInfoPanelProps) {
         <div class="info-card-header">
           <span>Bookmarks</span>
           <div class="info-actions-inline">
-            <button
-              type="button"
-              class="ghost info-action"
-              onClick={props.onOpenBookmarksTab}
-            >
+            <Button type="button" variant="ghost" size="small" onClick={props.onOpenBookmarksTab}>
               Open
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -469,33 +468,36 @@ export function JjInfoPanel(props: JjInfoPanelProps) {
         </Show>
 
         <div class="info-actions-row">
-          <button
+          <Button
             type="button"
-            class="ghost info-action"
+            variant="ghost"
+            size="small"
             disabled={!!state.remoteAction}
             onClick={() => void runRemoteAction("fetch")}
             title="jj git fetch"
           >
             {state.remoteAction === "fetch" ? "Fetching…" : "Fetch"}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            class="ghost info-action"
+            variant="ghost"
+            size="small"
             disabled={!!state.remoteAction}
             onClick={() => void runRemoteAction("pushTracked")}
             title="jj git push --tracked"
           >
             {state.remoteAction === "pushTracked" ? "Pushing…" : "Push tracked"}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            class="ghost info-action"
+            variant="ghost"
+            size="small"
             disabled={!!state.remoteAction || !canPushDeleted()}
             onClick={() => void runRemoteAction("pushDeleted")}
             title="jj git push --deleted"
           >
             {state.remoteAction === "pushDeleted" ? "Pushing…" : "Push deleted"}
-          </button>
+          </Button>
         </div>
         <Show when={state.remoteError}>
           {(err) => <div class="info-error">{err()}</div>}
@@ -506,22 +508,17 @@ export function JjInfoPanel(props: JjInfoPanelProps) {
         <div class="info-card-header">
           <span>Graph</span>
           <div class="info-actions-inline">
-            <button
+            <IconButton
               type="button"
-              class="ghost info-action"
+              icon="refresh"
+              variant="ghost"
               onClick={props.onRefreshGraph}
               disabled={props.graphIsLoading}
               title="Refresh graph"
-            >
-              ↻
-            </button>
-            <button
-              type="button"
-              class="ghost info-action"
-              onClick={props.onOpenGraphTab}
-            >
+            />
+            <Button type="button" variant="ghost" size="small" onClick={props.onOpenGraphTab}>
               Open
-            </button>
+            </Button>
           </div>
         </div>
 

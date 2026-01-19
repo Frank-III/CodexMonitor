@@ -7,6 +7,14 @@ type DragPayload = {
   fromPane: ThreadPaneId;
 };
 
+type LeadingTab = {
+  id: string;
+  title: string;
+  count?: string | number | null;
+  active: boolean;
+  onSelect: () => void;
+};
+
 function encodePayload(payload: DragPayload) {
   return JSON.stringify(payload);
 }
@@ -30,6 +38,7 @@ function decodePayload(value: string | undefined | null): DragPayload | null {
 
 type ThreadTabsBarProps = {
   pane: ThreadPaneId;
+  leadingTabs?: Accessor<LeadingTab[]>;
   tabs: Accessor<string[]>;
   activeThreadId: Accessor<string | null>;
   isFocused: Accessor<boolean>;
@@ -57,7 +66,8 @@ export function ThreadTabsBar(props: ThreadTabsBarProps) {
     before: boolean;
   } | null>(null);
 
-  const hasTabs = createMemo(() => props.tabs().length > 0);
+  const leadingTabs = createMemo(() => props.leadingTabs?.() ?? []);
+  const hasTabs = createMemo(() => props.tabs().length > 0 || leadingTabs().length > 0);
 
   const handleDropAt = (payload: DragPayload, targetIndex: number) => {
     props.onMoveThread(payload.threadId, payload.fromPane, props.pane, targetIndex);
@@ -186,6 +196,30 @@ export function ThreadTabsBar(props: ThreadTabsBarProps) {
     );
   };
 
+  const renderLeadingTab = (tab: LeadingTab) => {
+    const isActive = () => tab.active;
+    const count = () => tab.count;
+    return (
+      <div
+        class="thread-tab"
+        classList={{ active: isActive(), "is-focused": props.isFocused() }}
+        role="tab"
+        tabindex={isActive() ? 0 : -1}
+        aria-selected={isActive()}
+        onPointerDown={() => props.onFocusPane()}
+        onClick={() => {
+          props.onFocusPane();
+          tab.onSelect();
+        }}
+      >
+        <span class="thread-tab-title">{tab.title}</span>
+        <Show when={count() !== undefined && count() !== null && String(count()).trim() !== ""}>
+          {(value) => <span class="thread-tab-count">{value()}</span>}
+        </Show>
+      </div>
+    );
+  };
+
   return (
     <div
       class="thread-tabs"
@@ -197,6 +231,7 @@ export function ThreadTabsBar(props: ThreadTabsBarProps) {
       onDragLeave={handleDragLeaveBar}
       data-pane={props.pane}
     >
+      <For each={leadingTabs()}>{renderLeadingTab}</For>
       <For each={props.tabs()}>{renderTab}</For>
       <Show when={!hasTabs()}>
         <div class="thread-tabs-empty">Drop a thread here</div>

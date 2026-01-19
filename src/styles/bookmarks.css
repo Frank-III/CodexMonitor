@@ -16,7 +16,7 @@
   font-size: 12px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--text-weak);
 }
 
 .bookmarks-header-actions {
@@ -52,33 +52,33 @@
 
 .bookmarks-meta {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--text-weak);
 }
 
 .bookmarks-meta-code {
   font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
   font-size: 11px;
-  color: rgba(100, 200, 255, 0.9);
+  color: var(--text-interactive-base);
 }
 
 .bookmarks-meta-divergence {
   margin-left: 8px;
   font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
   font-size: 10px;
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--text-weak);
 }
 
 .bookmarks-meta-context {
   margin-left: 8px;
   font-size: 10px;
-  color: rgba(255, 255, 255, 0.45);
+  color: var(--text-weaker);
   text-transform: none;
   letter-spacing: 0;
 }
 
 .bookmarks-error {
   font-size: 12px;
-  color: rgba(255, 160, 160, 0.9);
+  color: var(--text-on-critical-weak);
   white-space: pre-wrap;
 }
 
@@ -91,43 +91,18 @@
   flex: 1;
   min-width: 0;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-weak-base);
+  background: var(--input-base);
   padding: 8px 10px;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--text-strong);
   outline: none;
   font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
 }
 
 .bookmarks-base-input:focus {
-  border-color: rgba(99, 102, 241, 0.5);
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.18);
-}
-
-.bookmarks-base-apply {
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.8);
-  padding: 8px 12px;
-  border-radius: 10px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: none;
-  transform: none;
-}
-
-.bookmarks-base-apply:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.95);
-  transform: none;
-  box-shadow: none;
-}
-
-.bookmarks-base-apply:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+  border-color: var(--border-interactive-focus);
+  box-shadow: 0 0 0 2px var(--border-weak-selected);
 }
 
 .bookmarks-base-quick {
@@ -137,9 +112,9 @@
 }
 
 .bookmarks-quick {
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.04);
-  color: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--border-weak-base);
+  background: var(--surface-raised-base);
+  color: var(--text-weak);
   border-radius: 999px;
   padding: 4px 8px;
   font-size: 11px;
@@ -149,8 +124,8 @@
 }
 
 .bookmarks-quick:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.9);
+  background: var(--surface-raised-base-hover);
+  color: var(--text-strong);
   transform: none;
   box-shadow: none;
 }
@@ -161,8 +136,8 @@
 }
 
 .bookmarks-revisions {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(0, 0, 0, 0.14);
+  border: 1px solid var(--border-weaker-base);
+  background: var(--surface-inset-base);
   border-radius: 12px;
   padding: 8px 8px 6px;
 }
@@ -175,7 +150,7 @@
   font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--text-weak);
   padding: 0 2px 6px;
 }
 
@@ -204,14 +179,14 @@
   text-align: left;
   padding: 8px 10px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface-raised-base);
+  border: 1px solid var(--border-weaker-base);
   box-shadow: none;
   transform: none;
 }
 
 .bookmarks-revision-row:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--surface-raised-base-hover);
   transform: none;
   box-shadow: none;
 }
@@ -232,7 +207,7 @@
   flex: 1;
   min-width: 0;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.88);
+  color: var(--text-strong);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -241,13 +216,13 @@
 .bookmarks-revision-sha {
   font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
   font-size: 10px;
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--text-weak);
   flex-shrink: 0;
 }
 
 .bookmarks-revision-meta {
   font-size: 10px;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--text-weak);
   width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -266,7 +241,7 @@
 
 .bookmarks-empty {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--text-weak);
   padding: 8px 4px;
 }
 
@@ -279,22 +254,22 @@
   text-align: left;
   padding: 10px 10px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface-raised-base);
+  border: 1px solid var(--border-weaker-base);
   box-shadow: none;
   transform: none;
   cursor: pointer;
 }
 
 .bookmarks-row:not(.disabled):hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--surface-raised-base-hover);
   transform: none;
   box-shadow: none;
 }
 
 .bookmarks-row.active {
-  border-color: rgba(100, 200, 255, 0.22);
-  background: rgba(100, 200, 255, 0.12);
+  border-color: var(--border-interactive-base);
+  background: var(--surface-interactive-weak);
 }
 
 .bookmarks-row.disabled {
@@ -303,7 +278,7 @@
 }
 
 .bookmarks-row:focus-visible {
-  outline: 2px solid rgba(99, 102, 241, 0.6);
+  outline: 2px solid var(--border-interactive-focus);
   outline-offset: 2px;
 }
 
@@ -317,7 +292,7 @@
 .bookmarks-row-symbol {
   font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--text-strong);
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -328,7 +303,7 @@
 .bookmarks-row-commit {
   font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
   font-size: 10px;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--text-weak);
   flex-shrink: 0;
 }
 
@@ -358,12 +333,12 @@
 }
 
 .bookmarks-row-action.destructive {
-  color: rgba(255, 160, 160, 0.9);
+  color: var(--text-on-critical-weak);
 }
 
 .bookmarks-row-action.destructive:hover:not(:disabled) {
-  background: rgba(255, 90, 90, 0.14);
-  color: rgba(255, 160, 160, 1);
+  background: var(--surface-critical-weak);
+  color: var(--text-on-critical-base);
 }
 
 .bookmarks-row-badge {
@@ -372,21 +347,21 @@
   text-transform: uppercase;
   padding: 2px 6px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 160, 160, 0.25);
-  color: rgba(255, 160, 160, 0.9);
-  background: rgba(255, 160, 160, 0.1);
+  border: 1px solid var(--border-critical-base);
+  color: var(--text-on-critical-weak);
+  background: var(--surface-critical-weak);
   flex-shrink: 0;
 }
 
 .bookmarks-row-badge-setting {
-  border-color: rgba(100, 200, 255, 0.25);
-  color: rgba(100, 200, 255, 0.9);
-  background: rgba(100, 200, 255, 0.1);
+  border-color: var(--border-interactive-base);
+  color: var(--text-on-interactive-weak);
+  background: var(--surface-interactive-weak);
 }
 
 .bookmarks-row-summary {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--text-strong);
   line-height: 1.3;
   width: 100%;
   overflow: hidden;
@@ -396,7 +371,7 @@
 
 .bookmarks-row-meta {
   font-size: 10px;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--text-weak);
   width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;

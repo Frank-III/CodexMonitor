@@ -1,5 +1,5 @@
 import { For, Show, createMemo, createEffect, onCleanup } from "solid-js";
-import { Icon, Keybind } from "../ui";
+import { Button, Icon, Keybind } from "../ui";
 import type { ApprovalRequest, WorkspaceInfo } from "../types";
 
 type ApprovalToastsProps = {
@@ -87,22 +87,24 @@ export function ApprovalToasts(props: ApprovalToastsProps) {
                 <div class="approval-toast-method">{methodDisplay()}</div>
                 <div class="approval-toast-body">{paramsDisplay()}</div>
                 <div class="approval-toast-actions">
-                  <button
+                  <Button
                     type="button"
-                    class="secondary"
+                    variant="secondary"
+                    size="small"
                     onClick={() => props.onDecision(request, "decline")}
                   >
                     Deny
                     <Keybind class="ml-2 opacity-60">N</Keybind>
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
-                    class="primary"
+                    variant="primary"
+                    size="small"
                     onClick={() => props.onDecision(request, "accept")}
                   >
                     Allow
                     <Keybind class="ml-2 opacity-80">Y</Keybind>
-                  </button>
+                  </Button>
                 </div>
               </div>
             );

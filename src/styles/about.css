@@ -6,8 +6,8 @@
   justify-content: center;
   padding-top: 8px;
   box-sizing: border-box;
-  background: rgba(18, 18, 18, 0.95);
-  color: rgba(255, 255, 255, 0.95);
+  background: var(--background-base);
+  color: var(--text-strong);
   -webkit-app-region: no-drag;
 }
 
@@ -42,19 +42,19 @@
 
 .about-version {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--text-weak);
 }
 
 .about-tagline {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--text-weak);
   max-width: 260px;
 }
 
 .about-divider {
   width: 160px;
   height: 1px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--border-weaker-base);
   margin: 6px 0;
 }
 
@@ -68,13 +68,13 @@
 .about-footer {
   margin-top: 8px;
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--text-weak);
 }
 
 .about-link {
   border: none;
   background: transparent;
-  color: rgba(255, 255, 255, 0.95);
+  color: var(--text-strong);
   cursor: pointer;
   font-size: 12px;
   padding: 0;
@@ -85,5 +85,5 @@
 }
 
 .about-link-sep {
-  color: rgba(255, 255, 255, 0.3);
+  color: var(--text-weaker);
 }

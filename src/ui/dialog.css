@@ -24,8 +24,8 @@
   [data-slot="dialog-container"] {
     position: relative;
     z-index: 50;
-    width: min(calc(100vw - 16px), 640px);
-    height: min(calc(100vh - 16px), 512px);
+    width: min(calc(100vw - 16px), var(--dialog-width, 640px));
+    height: min(calc(100vh - 16px), var(--dialog-height, 512px));
     display: flex;
     flex-direction: column;
     align-items: center;

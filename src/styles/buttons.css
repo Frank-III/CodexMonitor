@@ -5,22 +5,6 @@
   font-size: var(--font-size-small, 13px);
 }
 
-button {
-  border: none;
-  border-radius: var(--radius-lg, 8px);
-  padding: 8px 14px;
-  font-size: var(--font-size-base, 14px);
-  font-weight: var(--font-weight-medium, 500);
-  cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease;
-  -webkit-app-region: no-drag;
-}
-
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
 .primary {
   background: var(--surface-brand-base);
   color: var(--text-on-brand-base);
@@ -64,12 +48,12 @@ button:disabled {
   height: 16px;
 }
 
-.confirm-destructive {
-  border: 1px solid var(--border-critical-base);
-  background: var(--surface-critical-weak);
+[data-component="button"].confirm-destructive {
+  border-color: var(--border-critical-base);
+  background-color: var(--surface-critical-weak);
   color: var(--text-on-critical-base);
 }
 
-.confirm-destructive:hover:not(:disabled) {
-  background: var(--surface-critical-base);
+[data-component="button"].confirm-destructive:hover:not(:disabled) {
+  background-color: var(--surface-critical-base);
 }

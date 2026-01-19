@@ -15,6 +15,10 @@ export interface AppCommandsProps {
   onToggleDebug?: () => void
   onOpenSettings?: () => void
   onToggleRightPanel?: () => void
+  onOpenTerminal?: () => void
+  onOpenFiles?: () => void
+  onOpenDiff?: () => void
+  onFocusComposer?: () => void
 }
 
 export function AppCommands(props: AppCommandsProps) {
@@ -108,6 +112,50 @@ export function AppCommands(props: AppCommandsProps) {
         keybind: "mod+\\",
         category: "Layout",
         onSelect: props.onToggleRightPanel,
+      })
+    }
+
+    if (props.onOpenTerminal) {
+      options.push({
+        id: "terminal.toggle",
+        title: "Toggle Terminal",
+        description: "Show/hide the terminal panel",
+        keybind: "ctrl+`",
+        category: "Layout",
+        onSelect: props.onOpenTerminal,
+      })
+    }
+
+    if (props.onOpenFiles) {
+      options.push({
+        id: "files.open",
+        title: "Open Files Panel",
+        description: "Open the files panel",
+        keybind: "mod+shift+e",
+        category: "Layout",
+        onSelect: props.onOpenFiles,
+      })
+    }
+
+    if (props.onOpenDiff) {
+      options.push({
+        id: "diff.open",
+        title: "Review Changes",
+        description: "Open the changes review",
+        keybind: "mod+shift+g",
+        category: "Layout",
+        onSelect: props.onOpenDiff,
+      })
+    }
+
+    if (props.onFocusComposer) {
+      options.push({
+        id: "composer.focus",
+        title: "Focus Composer",
+        description: "Focus the message input",
+        keybind: "mod+l",
+        category: "Navigation",
+        onSelect: props.onFocusComposer,
       })
     }
 

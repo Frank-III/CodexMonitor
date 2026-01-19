@@ -112,14 +112,17 @@ function TerminalInstance(props: {
       };
       container.addEventListener("pointerdown", pointerDownHandler);
 
-      const attachCustomKeyEventHandler = (term as any)?.attachCustomKeyEventHandler as
-        | ((handler: (event: KeyboardEvent) => boolean) => void)
-        | undefined;
-      attachCustomKeyEventHandler?.((event) => {
+      term.attachCustomKeyEventHandler((event) => {
         const key = event.key.toLowerCase();
+
+        // Allow ctrl-` to be handled by the app (toggle terminal panel).
+        if (event.ctrlKey && !event.metaKey && !event.altKey && key === "`") {
+          return true;
+        }
+
         const isCopy =
           (event.metaKey && !event.ctrlKey && !event.altKey && key === "c") ||
-          (event.ctrlKey && event.shiftKey && !event.metaKey && key === "c");
+          (event.ctrlKey && event.shiftKey && !event.metaKey && !event.altKey && key === "c");
         if (isCopy) {
           const hasSelection = (term as any)?.hasSelection?.() as boolean | undefined;
           if (!hasSelection) {
@@ -131,7 +134,7 @@ function TerminalInstance(props: {
 
         const isPaste =
           (event.metaKey && !event.ctrlKey && !event.altKey && key === "v") ||
-          (event.ctrlKey && event.shiftKey && !event.metaKey && key === "v");
+          (event.ctrlKey && event.shiftKey && !event.metaKey && !event.altKey && key === "v");
         if (isPaste) {
           void pasteClipboard();
           return true;

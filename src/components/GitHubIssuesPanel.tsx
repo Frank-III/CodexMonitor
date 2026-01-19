@@ -1,4 +1,5 @@
 import { For, Show } from "solid-js";
+import { IconButton } from "../ui";
 import type { GitHubIssue } from "../types";
 
 const openUrl = (url: string) => window.open(url, "_blank");
@@ -24,14 +25,14 @@ export function GitHubIssuesPanel(props: GitHubIssuesPanelProps) {
     <aside class="issues-panel">
       <div class="issues-header">
         <span>GitHub Issues</span>
-        <button
+        <IconButton
           type="button"
-          class="ghost icon-button issues-refresh"
+          icon="refresh"
+          variant="ghost"
+          class="issues-refresh"
           onClick={props.onRefresh}
           aria-label="Refresh issues"
-        >
-          ↻
-        </button>
+        />
       </div>
 
       <Show when={props.isLoading}>
@@ -77,4 +78,3 @@ export function GitHubIssuesPanel(props: GitHubIssuesPanelProps) {
     </aside>
   );
 }
-

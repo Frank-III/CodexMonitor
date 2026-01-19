@@ -25,14 +25,20 @@
 }
 
 .main-topbar {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
   padding: 10px 32px 8px;
   border-bottom: 1px solid var(--border-weak-base);
   background: var(--background-stronger);
   -webkit-app-region: no-drag;
   flex-shrink: 0;
+}
+
+.main-topbar-center {
+  display: flex;
+  justify-content: center;
+  min-width: 0;
 }
 
 .branch-pill {
@@ -67,6 +73,56 @@
 .actions {
   display: flex;
   gap: 12px;
+  justify-self: end;
+}
+
+.titlebar-search-button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 320px;
+  padding: 6px 8px;
+  border-radius: var(--radius-md, 6px);
+  border: 1px solid var(--border-weak-base);
+  background: var(--surface-raised-base);
+  transition: background 0.15s ease, border-color 0.15s ease;
+  cursor: default;
+}
+
+.titlebar-search-button:hover,
+.titlebar-search-button:focus-visible {
+  background: var(--surface-raised-base-hover);
+}
+
+.titlebar-search-button:active {
+  background: var(--surface-raised-base-active);
+}
+
+.titlebar-search-leading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.titlebar-search-icon {
+  color: var(--text-base);
+  flex-shrink: 0;
+}
+
+.titlebar-search-placeholder {
+  min-width: 0;
+  flex: 1;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  color: var(--text-weak);
 }
 
 .content {
@@ -74,6 +130,6 @@
   min-height: 0;
   flex: 1;
   -webkit-app-region: no-drag;
-  padding: 0 0 0 32px;
+  padding: 0;
   overflow: hidden;
 }

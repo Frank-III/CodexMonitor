@@ -1,5 +1,7 @@
+import { Dialog as KobalteDialog } from "@kobalte/core/dialog";
 import { Show } from "solid-js";
 import { createStore } from "solid-js/store";
+import { Button, Checkbox, Dialog, Select, TextField } from "../ui";
 import type { AccessMode, AppSettings, CodexDoctorResult } from "../types";
 
 type SettingsViewProps = {
@@ -24,6 +26,12 @@ export function SettingsView(props: SettingsViewProps) {
 }
 
 function SettingsViewContent(props: SettingsViewProps) {
+  const accessModeOptions: { value: AccessMode; label: string }[] = [
+    { value: "read-only", label: "Read-only" },
+    { value: "current", label: "Current workspace" },
+    { value: "full-access", label: "Full access" },
+  ];
+
   const [state, setState] = createStore<{
     codexBin: string;
     defaultAccessMode: AccessMode;
@@ -39,6 +47,8 @@ function SettingsViewContent(props: SettingsViewProps) {
     isSaving: false,
     saveError: null,
   });
+
+  const clampScale = (value: number) => Math.min(3, Math.max(0.1, value));
 
   const handleSave = async () => {
     if (props.isLoading) {
@@ -69,229 +79,191 @@ function SettingsViewContent(props: SettingsViewProps) {
     }
   };
 
+  const currentAccessModeOption = () =>
+    accessModeOptions.find((option) => option.value === state.defaultAccessMode) ??
+    accessModeOptions[0];
+
+  const errorMessage = () => state.saveError || props.doctorError || props.error;
+
   return (
-    <div
-      class="absolute inset-0 z-50 flex items-center justify-center bg-[rgba(0,0,0,0.45)] backdrop-blur-[12px] backdrop-saturate-[120%] [-webkit-app-region:no-drag]"
-      role="presentation"
-      onMouseDown={(event) => {
-        if (event.currentTarget === event.target) {
-          props.onClose();
-        }
+    <KobalteDialog
+      modal
+      open={true}
+      onOpenChange={(open) => {
+        if (open) return;
+        props.onClose();
       }}
     >
-      <div
-        class="w-[calc(100vw-40px)] max-w-[560px] max-h-[calc(100vh-80px)] overflow-auto rounded-[14px] border border-white/10 bg-[rgba(18,22,32,0.98)] p-[14px] shadow-[0_18px_36px_rgba(0,0,0,0.35)]"
-        role="dialog"
-        aria-modal="true"
-      >
-          <div class="mb-[10px] flex items-center justify-between gap-3">
-            <div class="text-[12px] font-bold uppercase tracking-[0.1em] text-white/70">
-              Settings
-            </div>
-            <button
-              type="button"
-              class="ghost icon-button"
-              onClick={props.onClose}
-              aria-label="Close settings"
-            >
-              <svg viewBox="0 0 24 24" fill="none" aria-hidden>
-                <path
-                  d="M6 6l12 12M18 6L6 18"
-                  stroke="currentColor"
-                  stroke-width="1.6"
-                  stroke-linecap="round"
-                />
-              </svg>
-            </button>
-          </div>
-
-          <Show when={props.isLoading}>
-            <div class="px-[6px] py-[18px] text-[12px] text-white/60">
-              Loading…
-            </div>
-          </Show>
-
-          <Show when={!props.isLoading}>
-            <div class="flex flex-col gap-[14px] px-[2px] pb-[10px] pt-[6px]">
-              <div class="flex flex-col gap-[6px]">
-                <label class="text-[11px] text-white/70" for="settings-codex-bin">
-                  Codex binary
-                </label>
-                <div class="flex items-center gap-[10px]">
-                  <input
-                    id="settings-codex-bin"
-                    class="flex-1 rounded-[10px] border border-white/15 bg-white/5 px-[10px] py-[8px] text-[13px] text-white/90 outline-none focus:border-indigo-400/60 focus:ring-2 focus:ring-indigo-400/20"
-                    type="text"
-                    value={state.codexBin}
-                    placeholder="codex"
-                    onInput={(event) => setState("codexBin", event.currentTarget.value)}
-                    spellcheck={false}
-                  />
-                  <button
-                    type="button"
-                    class="secondary"
-                    onClick={handleDoctor}
-                    disabled={props.isDoctorLoading}
-                    title="Check Codex + Node availability"
-                  >
-                    {props.isDoctorLoading ? "Checking…" : "Doctor"}
-                  </button>
-                </div>
-                <div class="text-[11px] leading-snug text-white/50">
-                  Optional full path (e.g. <code>/opt/homebrew/bin/codex</code>).
-                </div>
-              </div>
-
-              <div class="flex flex-col gap-[6px]">
-                <label
-                  class="text-[11px] text-white/70"
-                  for="settings-access-mode"
-                >
-                  Default access mode
-                </label>
-                <select
-                  id="settings-access-mode"
-                  class="rounded-[10px] border border-white/15 bg-white/5 px-[10px] py-[8px] text-[13px] text-white/90 outline-none focus:border-indigo-400/60 focus:ring-2 focus:ring-indigo-400/20"
-                  value={state.defaultAccessMode}
-                  onChange={(event) =>
-                    setState(
-                      "defaultAccessMode",
-                      event.currentTarget.value as AccessMode,
-                    )
-                  }
-                >
-                  <option value="read-only">Read-only</option>
-                  <option value="current">Current workspace</option>
-                  <option value="full-access">Full access</option>
-                </select>
-              </div>
-
-              <div class="flex flex-col gap-[6px]">
-                <label class="text-[11px] text-white/70" for="settings-ui-scale">
-                  UI scale
-                </label>
-                <div class="grid grid-cols-[1fr_76px] items-center gap-[10px]">
-                  <input
-                    id="settings-ui-scale"
-                    class="w-full"
-                    type="range"
-                    min="0.1"
-                    max="3"
-                    step="0.1"
-                    value={state.uiScale}
-                    onInput={(event) =>
-                      setState("uiScale", Number(event.currentTarget.value))
-                    }
-                  />
-                  <input
-                    class="rounded-[10px] border border-white/15 bg-white/5 px-[10px] py-[8px] text-[13px] text-white/90 outline-none focus:border-indigo-400/60 focus:ring-2 focus:ring-indigo-400/20"
-                    type="number"
-                    min="0.1"
-                    max="3"
-                    step="0.1"
-                    value={state.uiScale}
-                    onInput={(event) =>
-                      setState("uiScale", Number(event.currentTarget.value))
-                    }
-                  />
-                </div>
-              </div>
-
-              <div class="flex flex-col gap-[6px]">
-                <div class="text-[11px] font-bold uppercase tracking-[0.1em] text-white/60">
-                  Experimental
-                </div>
-                <label class="inline-flex items-start gap-[10px] rounded-[12px] border border-white/10 bg-white/5 p-[10px] text-[12px] text-white/80">
-                  <input
-                    type="checkbox"
-                    checked={state.experimentalSteerEnabled}
-                    onChange={(event) =>
-                      setState("experimentalSteerEnabled", event.currentTarget.checked)
-                    }
-                  />
-                  <span class="flex flex-col gap-[4px]">
-                    <span class="font-semibold text-white/85">Steer mode</span>
-                    <span class="text-[11px] leading-snug text-white/55">
-                      When enabled, you can send messages while the agent is still running. Press{" "}
-                      <code>Tab</code> while running to queue instead.
-                    </span>
-                  </span>
-                </label>
-              </div>
-
-              <Show
-                when={props.error || state.saveError || props.doctorError}
-              >
-                <div class="whitespace-pre-wrap break-words rounded-[10px] border border-red-300/20 bg-red-300/10 p-[10px] text-[12px] text-red-200">
-                  {state.saveError ||
-                    props.doctorError ||
-                    props.error ||
-                    "Unknown error"}
-                </div>
-              </Show>
-
-              <Show when={props.doctorResult}>
-                {(result) => (
-                  <div class="rounded-[12px] border border-white/10 bg-white/5 p-[10px]">
-                    <div class="mb-[8px] flex flex-wrap items-center gap-[10px] text-[12px]">
-                      <span
-                        class="rounded-full border px-[8px] py-[2px] text-[11px] uppercase tracking-[0.08em]"
-                        classList={{
-                          "border-emerald-400/30": result().ok,
-                          "bg-emerald-400/10": result().ok,
-                          "text-emerald-300": result().ok,
-                          "border-red-300/30": !result().ok,
-                          "bg-red-300/10": !result().ok,
-                          "text-red-200": !result().ok,
-                        }}
-                      >
-                        {result().ok ? "OK" : "Check failed"}
-                      </span>
-                      <span class="text-white/75">
-                        Codex: {result().version ?? "—"}
-                      </span>
-                      <span class="text-white/75">
-                        Node: {result().nodeVersion ?? "—"}
-                      </span>
+      <KobalteDialog.Portal>
+        <KobalteDialog.Overlay data-component="dialog-overlay" />
+        <Dialog title="Settings">
+          <div class="flex flex-col gap-4 px-6 pb-6">
+            <Show when={props.isLoading} fallback={
+              <>
+                <div class="flex flex-col gap-4">
+                  <div class="flex items-end gap-2">
+                    <div class="min-w-0 flex-1">
+                      <TextField
+                        label="Codex binary"
+                        value={state.codexBin}
+                        onChange={(value) => setState("codexBin", value)}
+                        placeholder="codex"
+                        spellcheck={false}
+                        disabled={state.isSaving}
+                        description="Optional full path (e.g. /opt/homebrew/bin/codex)."
+                      />
                     </div>
-                    <pre class="m-0 whitespace-pre-wrap break-words rounded-[10px] bg-black/25 p-[8px] font-mono text-[11px] text-white/65">
-                      {[
-                        `codexBin: ${result().codexBin ?? "null"}`,
-                        `appServerOk: ${String(result().appServerOk)}`,
-                        `path: ${result().path ?? "null"}`,
-                        result().details ? `details: ${result().details}` : null,
-                        result().nodeDetails
-                          ? `nodeDetails: ${result().nodeDetails}`
-                          : null,
-                      ]
-                        .filter(Boolean)
-                        .join("\n")}
-                    </pre>
+                    <Button
+                      type="button"
+                      size="large"
+                      variant="secondary"
+                      onClick={handleDoctor}
+                      disabled={state.isSaving || props.isDoctorLoading}
+                      title="Check Codex + Node availability"
+                    >
+                      {props.isDoctorLoading ? "Checking…" : "Doctor"}
+                    </Button>
                   </div>
-                )}
-              </Show>
-            </div>
-          </Show>
 
-          <div class="flex justify-end gap-[10px] border-t border-white/10 pt-[8px]">
-            <button
-              type="button"
-              class="secondary"
-              onClick={props.onClose}
-              disabled={state.isSaving}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              class="primary"
-              onClick={handleSave}
-              disabled={props.isLoading || state.isSaving}
-            >
-              {state.isSaving ? "Saving…" : "Save"}
-            </button>
+                  <div class="flex flex-col gap-2">
+                    <div class="text-12-medium text-text-weak">Default access mode</div>
+                    <Select
+                      options={accessModeOptions}
+                      current={currentAccessModeOption()}
+                      value={(option) => option.value}
+                      label={(option) => option.label}
+                      onSelect={(option) => {
+                        if (!option) return;
+                        setState("defaultAccessMode", option.value);
+                      }}
+                      disabled={state.isSaving}
+                      size="large"
+                      variant="secondary"
+                    />
+                  </div>
+
+                  <div class="flex flex-col gap-2">
+                    <div class="text-12-medium text-text-weak">UI scale</div>
+                    <div class="grid grid-cols-[1fr_96px] items-center gap-3">
+                      <input
+                        class="w-full"
+                        type="range"
+                        min="0.1"
+                        max="3"
+                        step="0.1"
+                        value={state.uiScale}
+                        disabled={state.isSaving}
+                        onInput={(event) =>
+                          setState("uiScale", clampScale(Number(event.currentTarget.value)))
+                        }
+                      />
+                      <TextField
+                        hideLabel
+                        label="UI scale"
+                        type="number"
+                        min="0.1"
+                        max="3"
+                        step="0.1"
+                        value={String(state.uiScale)}
+                        onChange={(value) => {
+                          const next = Number(value);
+                          if (Number.isNaN(next)) return;
+                          setState("uiScale", clampScale(next));
+                        }}
+                        disabled={state.isSaving}
+                      />
+                    </div>
+                  </div>
+
+                  <div class="flex flex-col gap-2">
+                    <div class="text-12-medium uppercase tracking-wide text-text-weak">
+                      Experimental
+                    </div>
+                    <div class="rounded-md bg-surface-base px-3 py-2">
+                      <Checkbox
+                        checked={state.experimentalSteerEnabled}
+                        onChange={(checked) => setState("experimentalSteerEnabled", checked)}
+                        disabled={state.isSaving}
+                      >
+                        <span class="flex flex-col gap-1">
+                          <span>Steer mode</span>
+                          <span class="text-12-regular text-text-weak">
+                            Send messages while the agent is still running. Press <code>Tab</code>{" "}
+                            while running to queue instead.
+                          </span>
+                        </span>
+                      </Checkbox>
+                    </div>
+                  </div>
+
+                  <Show when={errorMessage()}>
+                    {(message) => (
+                      <div class="rounded-md bg-surface-critical-weak px-3 py-2 text-13-regular text-text-on-critical-weak whitespace-pre-wrap break-words">
+                        {message() || "Unknown error"}
+                      </div>
+                    )}
+                  </Show>
+
+                  <Show when={props.doctorResult}>
+                    {(result) => (
+                      <div class="rounded-md border border-border-weaker-base bg-surface-inset-base px-3 py-2">
+                        <div class="flex flex-wrap items-center gap-3 text-12-regular">
+                          <span
+                            class="rounded-full border px-2 py-0.5 text-10-regular uppercase tracking-wide"
+                            classList={{
+                              "border-border-success-base": result().ok,
+                              "bg-surface-success-weak": result().ok,
+                              "text-text-on-success-weak": result().ok,
+                              "border-border-critical-base": !result().ok,
+                              "bg-surface-critical-weak": !result().ok,
+                              "text-text-on-critical-weak": !result().ok,
+                            }}
+                          >
+                            {result().ok ? "OK" : "Check failed"}
+                          </span>
+                          <span class="text-text-weak">
+                            Codex: <span class="text-text-strong">{result().version ?? "—"}</span>
+                          </span>
+                          <span class="text-text-weak">
+                            Node:{" "}
+                            <span class="text-text-strong">{result().nodeVersion ?? "—"}</span>
+                          </span>
+                        </div>
+                        <pre class="mt-2 max-h-56 overflow-auto whitespace-pre-wrap break-words rounded-md border border-border-weaker-base bg-surface-inset-base p-3 text-12-regular text-text-base">
+                          {[
+                            `codexBin: ${result().codexBin ?? "null"}`,
+                            `appServerOk: ${String(result().appServerOk)}`,
+                            `path: ${result().path ?? "null"}`,
+                            result().details ? `details: ${result().details}` : null,
+                            result().nodeDetails ? `nodeDetails: ${result().nodeDetails}` : null,
+                          ]
+                            .filter(Boolean)
+                            .join("\n")}
+                        </pre>
+                      </div>
+                    )}
+                  </Show>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-2">
+                  <Button variant="ghost" onClick={props.onClose} disabled={state.isSaving}>
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="primary"
+                    onClick={handleSave}
+                    disabled={props.isLoading || state.isSaving}
+                  >
+                    {state.isSaving ? "Saving…" : "Save"}
+                  </Button>
+                </div>
+              </>
+            }>
+              <div class="text-13-regular text-text-weak">Loading…</div>
+            </Show>
           </div>
-      </div>
-    </div>
+        </Dialog>
+      </KobalteDialog.Portal>
+    </KobalteDialog>
   );
 }

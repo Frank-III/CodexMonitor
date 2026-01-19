@@ -8,6 +8,7 @@ export { Spinner } from "./Spinner";
 // Layout & Navigation
 export { Tabs, type TabsProps, type TabsListProps, type TabsTriggerProps, type TabsContentProps } from "./Tabs";
 export { DropdownMenu } from "./DropdownMenu";
+export { ContextMenu } from "./ContextMenu";
 export { Collapsible, type CollapsibleProps } from "./Collapsible";
 export { Accordion, type AccordionProps, type AccordionItemProps } from "./Accordion";
 export { ResizeHandle, type ResizeHandleProps } from "./ResizeHandle";

@@ -1,5 +1,6 @@
 import { createMemo, createSignal, For, Show, type Accessor } from "solid-js";
 import type { WorkspaceTaskRun } from "../stores/workspaceTasks";
+import { Button, Checkbox, IconButton } from "../ui";
 import { parseRyuStdout, type RyuStackItem } from "../utils/ryu";
 
 type RyuStackPanelProps = {
@@ -78,16 +79,16 @@ export function RyuStackPanel(props: RyuStackPanelProps) {
         </div>
         <div class="tasks-header-right">
           <span class={`tasks-status ${statusClass()}`}>{runLabel()}</span>
-          <button
+          <IconButton
             type="button"
-            class="ghost tasks-clear"
+            icon="close"
+            variant="ghost"
+            class="tasks-clear"
             onClick={props.onClear}
             disabled={!props.run() || isRunning()}
             title="Clear output"
             aria-label="Clear output"
-          >
-            ×
-          </button>
+          />
         </div>
       </div>
 
@@ -171,109 +172,90 @@ export function RyuStackPanel(props: RyuStackPanelProps) {
             </label>
             <div class="tasks-command-field">
               <span class="tasks-command-label">Submit flags</span>
-              <div class="flex flex-col gap-[8px] pt-[6px] text-[11px] text-white/70">
-                <label class="inline-flex items-center gap-[8px]">
-                  <input
-                    type="checkbox"
-                    checked={dryRun()}
-                    onChange={(event) => setDryRun(event.currentTarget.checked)}
-                  />
-                  <span>Dry run</span>
-                </label>
-                <label class="inline-flex items-center gap-[8px]">
-                  <input
-                    type="checkbox"
-                    checked={confirm()}
-                    onChange={(event) => setConfirm(event.currentTarget.checked)}
-                  />
-                  <span>Confirm</span>
-                </label>
-                <label class="inline-flex items-center gap-[8px]">
-                  <input
-                    type="checkbox"
-                    checked={draft()}
-                    onChange={(event) => setDraft(event.currentTarget.checked)}
-                  />
-                  <span>Draft new PRs</span>
-                </label>
-                <label class="inline-flex items-center gap-[8px]">
-                  <input
-                    type="checkbox"
-                    checked={publish()}
-                    onChange={(event) => setPublish(event.currentTarget.checked)}
-                  />
-                  <span>Publish draft PRs</span>
-                </label>
-                <label class="inline-flex items-center gap-[8px]">
-                  <input
-                    type="checkbox"
-                    checked={updateOnly()}
-                    onChange={(event) => setUpdateOnly(event.currentTarget.checked)}
-                  />
-                  <span>Update only</span>
-                </label>
+              <div class="flex flex-col gap-2 pt-1">
+                <Checkbox checked={dryRun()} onChange={(checked) => setDryRun(checked)}>
+                  Dry run
+                </Checkbox>
+                <Checkbox checked={confirm()} onChange={(checked) => setConfirm(checked)}>
+                  Confirm
+                </Checkbox>
+                <Checkbox checked={draft()} onChange={(checked) => setDraft(checked)}>
+                  Draft new PRs
+                </Checkbox>
+                <Checkbox checked={publish()} onChange={(checked) => setPublish(checked)}>
+                  Publish draft PRs
+                </Checkbox>
+                <Checkbox checked={updateOnly()} onChange={(checked) => setUpdateOnly(checked)}>
+                  Update only
+                </Checkbox>
               </div>
             </div>
           </div>
 
           <div class="tasks-commands-actions">
-            <button
+            <Button
               type="button"
-              class="secondary"
+              variant="secondary"
+              size="small"
               disabled={isRunning()}
               onClick={() => props.onRun("status", options())}
               title="View current stack"
             >
               View
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
-              class="secondary"
+              variant="secondary"
+              size="small"
               disabled={isRunning()}
               onClick={() => props.onRun("trackAll", options())}
               title="Track bookmarks in trunk()..@"
             >
               Track all
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
-              class="primary"
+              variant="primary"
+              size="small"
               disabled={isRunning()}
               onClick={() => props.onRun("submit", options())}
               title="Submit tracked bookmarks as stacked PRs"
             >
               Submit
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
-              class="ghost"
+              variant="ghost"
+              size="small"
               disabled={isRunning()}
               onClick={() => props.onRun("sync", options())}
               title="Sync stack with remote"
             >
               Sync
-            </button>
+            </Button>
           </div>
 
           <div class="tasks-commands-actions">
-            <button
+            <Button
               type="button"
-              class="ghost"
+              variant="ghost"
+              size="small"
               disabled={isRunning()}
               onClick={() => props.onRun("authGithub", options())}
               title="Test GitHub auth (gh token / GH_TOKEN / GITHUB_TOKEN)"
             >
               Auth: GitHub
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
-              class="ghost"
+              variant="ghost"
+              size="small"
               disabled={isRunning()}
               onClick={() => props.onRun("authGitlab", options())}
               title="Test GitLab auth (glab token / GL_TOKEN / GITLAB_TOKEN)"
             >
               Auth: GitLab
-            </button>
+            </Button>
           </div>
         </div>
 

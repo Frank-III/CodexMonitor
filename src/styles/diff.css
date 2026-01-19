@@ -1,9 +1,11 @@
+/* Right panel VCS diff */
+
 .diff-panel {
   background: transparent;
-  padding: 12px 12px 0;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
   -webkit-app-region: no-drag;
   flex: 1;
   min-height: 0;
@@ -13,10 +15,11 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 12px;
-  letter-spacing: 0.08em;
+  font-size: var(--font-size-small, 12px);
+  font-weight: var(--font-weight-medium, 500);
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--text-weak);
 }
 
 .diff-header-right {
@@ -25,31 +28,25 @@
   gap: 10px;
 }
 
-.diff-branch {
-  font-size: 13px;
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-
 .diff-status {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+  color: var(--text-weak);
 }
 
-.diff-totals {
-  font-size: 11px;
-  letter-spacing: 0.02em;
-  color: rgba(255, 255, 255, 0.5);
+.diff-branch {
+  font-size: 12px;
+  font-family: var(--font-family-mono);
+  color: var(--text-strong);
 }
 
 .diff-view-toggle {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--border-weaker-base);
   border-radius: 999px;
   padding: 2px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface-base);
 }
 
 .diff-view-toggle-button {
@@ -60,7 +57,7 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--text-weak);
   background: transparent;
   cursor: pointer;
   box-shadow: none;
@@ -68,44 +65,45 @@
 }
 
 .diff-view-toggle-button:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.85);
+  background: var(--surface-raised-base-hover);
+  color: var(--text-base);
   box-shadow: none;
   transform: none;
 }
 
 .diff-view-toggle-button.active {
-  background: rgba(100, 200, 255, 0.14);
-  color: rgba(255, 255, 255, 0.92);
+  background: var(--surface-base-active);
+  color: var(--text-strong);
 }
 
 .diff-toolbar {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 10px 0 6px;
 }
 
 .diff-filter {
   flex: 1;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 10px;
-  padding: 8px 10px;
-  background: rgba(255, 255, 255, 0.04);
-  color: rgba(255, 255, 255, 0.85);
+  min-width: 0;
+  border: 1px solid var(--border-weaker-base);
+  border-radius: var(--radius-md, 6px);
+  padding: 6px 10px;
+  background: var(--surface-inset-base);
+  color: var(--text-strong);
   font-size: 12px;
   outline: none;
+  transition: border-color 0.12s ease;
 }
 
 .diff-filter:focus {
-  border-color: rgba(100, 200, 255, 0.35);
-  box-shadow: 0 0 0 2px rgba(100, 200, 255, 0.15);
+  border-color: var(--border-base);
 }
 
 .diff-filter-count {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--text-weak);
   flex-shrink: 0;
+  font-family: var(--font-family-mono);
 }
 
 .diff-list {
@@ -114,19 +112,26 @@
   gap: 6px;
   overflow-y: auto;
   flex: 1;
-  padding-right: 2px;
   min-height: 0;
 }
 
 .diff-empty {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.5);
+  font-size: 13px;
+  color: var(--text-weak);
+  padding: 12px 0;
+  text-align: center;
 }
 
 .diff-error {
   font-size: 12px;
-  color: rgba(255, 160, 160, 0.9);
+  color: var(--text-on-critical-weak);
+  background: var(--surface-critical-weak);
+  border: none;
+  border-radius: var(--radius-md, 6px);
+  padding: 8px 10px;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.4;
 }
 
 .diff-recover {
@@ -134,75 +139,73 @@
   box-shadow: none;
 }
 
-.diff-recover:hover:not(:disabled) {
-  box-shadow: none;
-}
-
 .diff-row {
   display: flex;
   gap: 8px;
-  align-items: flex-start;
-  padding: 6px 8px;
-  border-radius: 6px;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: var(--radius-md, 6px);
+  background: var(--surface-raised-base);
+  border: none;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background 0.12s ease;
+  -webkit-app-region: no-drag;
+}
+
+.diff-row:hover {
+  background: var(--surface-raised-base-hover);
+}
+
+.diff-row.selected {
+  background: var(--surface-base-active);
 }
 
 .diff-status-badge {
   width: 20px;
   height: 18px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm, 4px);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.05em;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.7);
-  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-weaker-base);
+  color: var(--text-weak);
+  background: var(--surface-base);
   flex-shrink: 0;
-  margin-top: 1px;
 }
 
 .diff-status-badge--A {
-  border-color: rgba(71, 212, 136, 0.35);
-  background: rgba(71, 212, 136, 0.12);
-  color: rgba(71, 212, 136, 0.95);
+  border-color: var(--border-success-base);
+  background: var(--surface-success-weak);
+  color: var(--text-on-success-weak);
 }
 
 .diff-status-badge--M,
 .diff-status-badge--T {
-  border-color: rgba(100, 200, 255, 0.35);
-  background: rgba(100, 200, 255, 0.12);
-  color: rgba(100, 200, 255, 0.95);
+  border-color: var(--border-interactive-base);
+  background: var(--surface-interactive-weak);
+  color: var(--text-on-interactive-weak);
 }
 
 .diff-status-badge--D {
-  border-color: rgba(255, 107, 107, 0.35);
-  background: rgba(255, 107, 107, 0.12);
-  color: rgba(255, 107, 107, 0.95);
+  border-color: var(--border-critical-base);
+  background: var(--surface-critical-weak);
+  color: var(--text-on-critical-weak);
 }
 
 .diff-status-badge--R,
 .diff-status-badge--C {
-  border-color: rgba(255, 196, 96, 0.35);
-  background: rgba(255, 196, 96, 0.12);
-  color: rgba(255, 196, 96, 0.95);
+  border-color: var(--border-warning-base);
+  background: var(--surface-warning-weak);
+  color: var(--text-on-warning-weak);
 }
 
 .diff-status-badge--U {
-  border-color: rgba(239, 68, 68, 0.35);
-  background: rgba(239, 68, 68, 0.12);
-  color: rgba(239, 68, 68, 0.95);
-}
-
-.diff-row:hover {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.diff-row.selected {
-  background: rgba(100, 200, 255, 0.12);
+  border-color: var(--border-critical-base);
+  background: var(--surface-critical-weak);
+  color: var(--text-on-critical-weak);
 }
 
 .diff-icon {
@@ -210,14 +213,12 @@
   height: 18px;
   display: grid;
   place-items: center;
-}
-
-.diff-icon svg {
-  width: 16px;
-  height: 16px;
+  color: var(--icon-weak-base);
 }
 
 .diff-file {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -225,42 +226,39 @@
 
 .diff-path {
   display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: 8px;
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.85);
-  word-break: break-word;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--text-base);
 }
 
-.diff-counts-inline {
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.5);
+.diff-path-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
-  display: inline-flex;
-  gap: 2px;
 }
 
-.diff-add {
-  color: #47d488;
+.diff-directory {
+  color: var(--text-weak);
 }
 
-.diff-del {
-  color: #ff6b6b;
-}
-
-.diff-sep {
-  color: rgba(255, 255, 255, 0.35);
+.diff-filename {
+  color: var(--text-strong);
+  font-weight: var(--font-weight-medium, 500);
 }
 
 /* Diff Viewer */
 .diff-viewer-wrapper {
   display: flex;
   flex-direction: column;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
+  border: 1px solid var(--border-weaker-base);
+  border-radius: var(--radius-md, 6px);
   overflow: hidden;
-  margin-bottom: 8px;
-  max-height: 300px;
+  background: var(--surface-inset-base);
+  max-height: 320px;
 }
 
 .diff-viewer-header {
@@ -268,36 +266,37 @@
   justify-content: space-between;
   align-items: center;
   padding: 8px 10px;
-  background: rgba(255, 255, 255, 0.04);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface-raised-base);
+  border-bottom: 1px solid var(--border-weaker-base);
 }
 
 .diff-viewer-filename {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.8);
-  font-family: var(--font-mono, monospace);
+  color: var(--text-base);
+  font-family: var(--font-family-mono);
 }
 
 .diff-viewer-close {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
   font-size: 16px;
   line-height: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--icon-weak-base);
 }
 
-.diff-viewer-close:hover {
-  color: rgba(255, 255, 255, 0.9);
+.diff-viewer-close:hover:not(:disabled) {
+  color: var(--icon-base);
 }
 
 .diff-loading {
   padding: 16px;
   text-align: center;
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.5);
+  font-size: 13px;
+  color: var(--text-weak);
 }
 
 .diff-viewer-container {
@@ -311,4 +310,62 @@
   margin: 0;
   font-size: 11px !important;
   line-height: 1.5 !important;
+}
+
+/* Center review (opencode-style) */
+.workspace-review-panel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  -webkit-app-region: no-drag;
+}
+
+.review-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-weak);
+  font-size: 13px;
+}
+
+.review-error {
+  padding: 10px 12px;
+  border-radius: var(--radius-md, 6px);
+  background: var(--surface-critical-weak);
+  border: 1px solid var(--border-critical-base);
+  color: var(--text-on-critical-weak);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.review-error-message {
+  font-size: 12px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.review-error-action {
+  flex-shrink: 0;
+}
+
+.review-diff {
+  border: 1px solid var(--border-weaker-base);
+  border-radius: var(--radius-md, 6px);
+  background: var(--surface-inset-base);
+  overflow: hidden;
+}
+
+.review-diff-loading,
+.review-diff-error {
+  padding: 12px;
+  font-size: 12px;
+  color: var(--text-weak);
 }

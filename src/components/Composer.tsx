@@ -703,8 +703,11 @@ export function Composer(props: ComposerProps) {
   return (
     <footer
       ref={composerRef}
-      class="group/prompt-input relative mx-4 mb-4 flex flex-col overflow-clip rounded-md bg-[#232323] shadow-[0_0_0_1px_rgba(255,255,255,0.08),0_1px_2px_-1px_rgba(0,0,0,0.25),0_1px_2px_0_rgba(0,0,0,0.08)]"
-      classList={{ "pointer-events-none opacity-50": !!props.disabled, "border-dashed border-[var(--icon-info-active)]": isDragging() }}
+      class="group/prompt-input relative mx-4 mb-4 flex flex-col overflow-clip rounded-md border border-border-weaker-base bg-surface-inset-base"
+      classList={{
+        "pointer-events-none opacity-50": !!props.disabled,
+        "border-dashed border-border-interactive-base": isDragging(),
+      }}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onDragOver={handleDragOver}
@@ -728,7 +731,7 @@ export function Composer(props: ComposerProps) {
       </Show>
 
       <Show when={isDragging()}>
-        <div class="absolute inset-0 z-10 flex items-center justify-center bg-accent/10 text-sm font-medium text-accent">
+        <div class="absolute inset-0 z-10 flex items-center justify-center bg-surface-interactive-weak text-14-medium text-text-on-interactive-weak">
           <span>Drop images here</span>
         </div>
       </Show>
@@ -737,10 +740,10 @@ export function Composer(props: ComposerProps) {
         <div class="flex flex-wrap gap-2 pb-2">
           <For each={props.attachments()}>
             {(attachment) => (
-              <div class="relative flex max-w-[120px] items-center gap-1.5 rounded-md bg-white/6 px-2 py-1">
+              <div class="relative flex max-w-[120px] items-center gap-1.5 rounded-md bg-surface-raised-base px-2 py-1">
                 <Show
                   when={attachment.type === "image" && attachment.data}
-                  fallback={<span class="truncate text-[11px] text-text-muted">{attachment.name}</span>}
+                  fallback={<span class="truncate text-11-regular text-text-weak">{attachment.name}</span>}
                 >
                   <img
                     src={`data:${attachment.mimeType};base64,${attachment.data}`}
@@ -750,7 +753,7 @@ export function Composer(props: ComposerProps) {
                 </Show>
                 <button
                   type="button"
-                  class="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-danger text-white hover:bg-red-500"
+                  class="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-surface-critical-base text-text-on-critical-base hover:bg-surface-critical-strong"
                   onClick={() => removeAttachment(attachment.id)}
                   aria-label={`Remove ${attachment.name}`}
                 >

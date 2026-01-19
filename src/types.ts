@@ -345,3 +345,33 @@ export type TerminalOutputEvent = {
   terminal_id: string;
   data: string;
 };
+
+// JJ Operation History & Undo Support
+
+export type JjOperation = {
+  id: string;
+  description: string;
+  timestamp: number;
+  isCurrent: boolean;
+};
+
+export type ConflictedCommit = {
+  changeId: string;
+  commitId: string;
+  description: string;
+  conflictedFiles: string[];
+};
+
+export type ConflictInfo = {
+  hasConflicts: boolean;
+  conflictedCommits: ConflictedCommit[];
+};
+
+export type LandResult = {
+  destinationId: string;
+  previousOpId: string;
+};
+
+export type SyncResult = {
+  previousOpId: string;
+};

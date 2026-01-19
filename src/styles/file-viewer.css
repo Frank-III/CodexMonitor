@@ -16,7 +16,7 @@
   font-size: 12px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--text-weak);
 }
 
 .file-viewer-header-left {
@@ -31,9 +31,9 @@
   letter-spacing: 0.08em;
   padding: 2px 8px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--border-weak-base);
+  background: var(--surface-raised-base);
+  color: var(--text-weak);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -47,36 +47,36 @@
 .file-viewer-search-input {
   width: 100%;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-weak-base);
+  background: var(--input-base);
   padding: 8px 10px;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--text-strong);
   outline: none;
 }
 
 .file-viewer-search-input:focus {
-  border-color: rgba(100, 200, 255, 0.35);
+  border-color: var(--border-interactive-focus);
 }
 
 .file-viewer-error {
   font-size: 12px;
-  color: rgba(255, 160, 160, 0.9);
+  color: var(--text-on-critical-weak);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
 
 .file-viewer-empty {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--text-weak);
 }
 
 .file-viewer-list {
   max-height: 190px;
   overflow-y: auto;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-weaker-base);
+  background: var(--surface-inset-base);
   padding: 6px;
 }
 
@@ -94,20 +94,20 @@
 }
 
 .file-viewer-row:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--surface-raised-base-hover);
   transform: none;
   box-shadow: none;
 }
 
 .file-viewer-row.active {
-  background: rgba(100, 200, 255, 0.12);
-  border-color: rgba(100, 200, 255, 0.18);
+  background: var(--surface-interactive-weak);
+  border-color: var(--border-interactive-base);
 }
 
 .file-viewer-row-name {
   font-size: 12px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--text-strong);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -117,7 +117,7 @@
   font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
       "Courier New", monospace);
   font-size: 10px;
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--text-weak);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -127,8 +127,8 @@
   flex: 1;
   min-height: 0;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-weaker-base);
+  background: var(--surface-inset-base);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -140,14 +140,14 @@
   justify-content: space-between;
   gap: 10px;
   padding: 8px 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid var(--border-weaker-base);
+  background: var(--surface-raised-base);
 }
 
 .file-viewer-current-title {
   font-size: 11px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--text-strong);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -165,7 +165,7 @@
   font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
       "Courier New", monospace);
   font-size: 10px;
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--text-weak);
   white-space: nowrap;
 }
 
@@ -184,7 +184,7 @@
       "Courier New", monospace);
   font-size: 12px;
   line-height: 18px;
-  background: rgba(0, 0, 0, 0.22);
+  background: var(--surface-inset-strong);
   padding: 10px 8px;
 }
 
@@ -207,7 +207,7 @@
   width: 44px;
   padding-right: 10px;
   text-align: right;
-  color: rgba(255, 255, 255, 0.35);
+  color: var(--text-weaker);
   user-select: none;
   flex-shrink: 0;
 }
@@ -215,6 +215,5 @@
 .file-viewer-text {
   white-space: pre;
   flex: 0 0 auto;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--text-base);
 }
-
