@@ -3,22 +3,23 @@ import { createMemo, createSignal, For, Show } from "solid-js";
 import { DiffViewer } from "./DiffViewer";
 import { createVcsFileDiffResource } from "../stores/vcsDiff";
 import type { FileContents } from "@pierre/diffs";
+import { Button, DiffChanges, FileIcon, IconButton } from "../ui";
 
-type GitFile = {
+type VcsFile = {
   path: string;
   status: string;
   additions: number;
   deletions: number;
 };
 
-type GitDiffPanelProps = {
+type VcsDiffPanelProps = {
   workspaceId: string;
   branchName: string;
   totalAdditions: number;
   totalDeletions: number;
   fileStatus: string;
   error: string | null | undefined;
-  files: GitFile[];
+  files: VcsFile[];
   onRecoverStale?: () => Promise<void>;
 };
 
@@ -54,8 +55,8 @@ function getLangFromPath(path: string): string {
   return extMap[ext] ?? "text";
 }
 
-export function GitDiffPanel(props: GitDiffPanelProps) {
-  const [selectedFile, setSelectedFile] = createSignal<GitFile>();
+export function VcsDiffPanel(props: VcsDiffPanelProps) {
+  const [selectedFile, setSelectedFile] = createSignal<VcsFile>();
   const [diffStyle, setDiffStyle] = makePersisted(
     createSignal<"unified" | "split">("unified"),
     { name: "codexmonitor.diffStyle" },
@@ -133,9 +134,10 @@ export function GitDiffPanel(props: GitDiffPanelProps) {
       <div class="diff-header">
         <span>VCS Diff</span>
         <div class="diff-header-right">
-          <span class="diff-totals">
-            +{props.totalAdditions} / -{props.totalDeletions}
-          </span>
+          <DiffChanges
+            class="diff-totals"
+            changes={{ additions: props.totalAdditions, deletions: props.totalDeletions }}
+          />
           <div class="diff-view-toggle" role="group" aria-label="Diff view mode">
             <button
               type="button"
@@ -179,13 +181,14 @@ export function GitDiffPanel(props: GitDiffPanelProps) {
         <div class="diff-viewer-wrapper">
           <div class="diff-viewer-header">
             <span class="diff-viewer-filename">{selectedFile()!.path}</span>
-            <button
-              class="ghost diff-viewer-close"
+            <IconButton
+              type="button"
+              icon="close"
+              variant="ghost"
+              class="diff-viewer-close"
               onClick={() => setSelectedFile(undefined)}
               aria-label="Close diff"
-            >
-              ×
-            </button>
+            />
           </div>
           <Show when={diffResult.loading}>
             <div class="diff-loading">Loading diff...</div>
@@ -209,14 +212,16 @@ export function GitDiffPanel(props: GitDiffPanelProps) {
             <>
               <div class="diff-error">{message()}</div>
               <Show when={props.onRecoverStale && isStaleError()}>
-                <button
+                <Button
                   type="button"
-                  class="secondary diff-recover"
+                  variant="secondary"
+                  size="small"
+                  class="diff-recover"
                   onClick={() => void handleRecoverStale()}
                   disabled={recovering()}
                 >
                   {recovering() ? "Updating…" : "Update stale working copy"}
-                </button>
+                </Button>
               </Show>
             </>
           )}
@@ -229,7 +234,7 @@ export function GitDiffPanel(props: GitDiffPanelProps) {
         </Show>
         <For each={filteredFiles()}>
           {(file) => {
-            const { name } = splitPath(file.path);
+            const { name, dir } = splitPath(file.path);
             const isSelected = () => selectedFile()?.path === file.path;
             const status = () => statusLabel(file.status);
             return (
@@ -257,32 +262,17 @@ export function GitDiffPanel(props: GitDiffPanelProps) {
                   )}
                 </Show>
                 <span class="diff-icon" aria-hidden>
-                  <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
-                    <rect
-                      x="4"
-                      y="2"
-                      width="16"
-                      height="20"
-                      rx="2"
-                      stroke="currentColor"
-                      stroke-width="1.5"
-                    />
-                    <path
-                      d="M8 7h8M8 11h8M8 15h4"
-                      stroke="currentColor"
-                      stroke-width="1.5"
-                      stroke-linecap="round"
-                    />
-                  </svg>
+                  <FileIcon node={{ path: file.path, type: "file" }} />
                 </span>
                 <div class="diff-file">
                   <div class="diff-path">
-                    <span>{name}</span>
-                    <span class="diff-counts-inline">
-                      <span class="diff-add">+{file.additions}</span>
-                      <span class="diff-sep">/</span>
-                      <span class="diff-del">-{file.deletions}</span>
-                    </span>
+                    <div class="diff-path-text">
+                      <Show when={dir}>
+                        <span class="diff-directory">{dir}/</span>
+                      </Show>
+                      <span class="diff-filename">{name}</span>
+                    </div>
+                    <DiffChanges changes={file} />
                   </div>
                 </div>
               </div>

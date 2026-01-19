@@ -1,4 +1,5 @@
 import { For, Show } from "solid-js";
+import { IconButton } from "../ui";
 import type { TurnPlan, TurnPlanStepStatus } from "../types";
 
 type PlanPanelProps = {
@@ -35,20 +36,14 @@ export function PlanPanel(props: PlanPanelProps) {
           <span class="plan-progress">{progress()}</span>
         </Show>
         <Show when={props.onDismiss}>
-          <button
-            class="plan-dismiss ghost icon-button"
+          <IconButton
+            type="button"
+            icon="close"
+            variant="ghost"
+            class="plan-dismiss"
             onClick={props.onDismiss}
             aria-label="Dismiss plan"
-          >
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden>
-              <path
-                d="M18 6L6 18M6 6l12 12"
-                stroke="currentColor"
-                stroke-width="1.5"
-                stroke-linecap="round"
-              />
-            </svg>
-          </button>
+          />
         </Show>
       </div>
       <Show when={props.plan?.explanation}>

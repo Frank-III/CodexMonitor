@@ -1,5 +1,6 @@
 import { For, Show } from "solid-js";
 import { createStore } from "solid-js/store";
+import { Button, IconButton } from "../ui";
 import type { JjBookmarkInfo, VcsLogEntry } from "../types";
 
 type JjBookmarksPanelProps = {
@@ -177,112 +178,68 @@ export function JjBookmarksPanel(props: JjBookmarksPanelProps) {
       <div class="bookmarks-header">
         <span>Bookmarks</span>
         <div class="bookmarks-header-actions">
-          <button
+          <Button
             type="button"
-            class="ghost icon-button bookmarks-header-action"
+            variant="secondary"
+            size="small"
+            class="bookmarks-header-action"
             onClick={props.onNewBookmark}
             aria-label="Create bookmark"
             title="New bookmark"
           >
             + New…
-          </button>
-          <button
+          </Button>
+          <IconButton
             type="button"
-            class="ghost icon-button bookmarks-header-icon"
+            icon="arrow-down"
+            variant="ghost"
+            class="bookmarks-header-icon"
             onClick={() => void handleFetchRemote()}
             disabled={isBusy()}
             aria-label="Fetch from remote"
             title="Fetch from remote"
-          >
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden>
-              <path
-                d="M12 7v10"
-                stroke="currentColor"
-                stroke-width="1.6"
-                stroke-linecap="round"
-              />
-              <path
-                d="M8 13l4 4 4-4"
-                stroke="currentColor"
-                stroke-width="1.6"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-            </svg>
-          </button>
-          <button
+          />
+          <IconButton
             type="button"
-            class="ghost icon-button bookmarks-header-icon"
+            icon="arrow-up"
+            variant="ghost"
+            class="bookmarks-header-icon"
             onClick={() => void handlePushTracked()}
             disabled={isBusy()}
             aria-label="Push tracked bookmarks"
             title="Push tracked bookmarks"
-          >
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden>
-              <path
-                d="M12 17V7"
-                stroke="currentColor"
-                stroke-width="1.6"
-                stroke-linecap="round"
-              />
-              <path
-                d="M8 10l4-4 4 4"
-                stroke="currentColor"
-                stroke-width="1.6"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-            </svg>
-          </button>
-          <button
+          />
+          <IconButton
             type="button"
-            class="ghost icon-button bookmarks-header-icon"
+            icon="trash"
+            variant="ghost"
+            class="bookmarks-header-icon"
             onClick={() => void handlePushDeleted()}
             disabled={isBusy()}
             aria-label="Push deleted bookmarks"
             title="Push deleted bookmarks"
-          >
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden>
-              <path
-                d="M7 6h10M10 6V4h4v2"
-                stroke="currentColor"
-                stroke-width="1.4"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-              <path
-                d="M9 10v6M15 10v6"
-                stroke="currentColor"
-                stroke-width="1.4"
-                stroke-linecap="round"
-              />
-              <path
-                d="M8 6l1 14h6l1-14"
-                stroke="currentColor"
-                stroke-width="1.4"
-                stroke-linejoin="round"
-              />
-            </svg>
-          </button>
-          <button
+          />
+          <Button
             type="button"
-            class="ghost icon-button bookmarks-header-action"
+            variant="secondary"
+            size="small"
+            class="bookmarks-header-action"
             onClick={props.onEditBase}
             aria-label="Edit divergence base"
             title="Edit base"
           >
             Base…
-          </button>
-          <button
+          </Button>
+          <IconButton
             type="button"
-            class="ghost icon-button bookmarks-header-icon"
+            icon="refresh"
+            variant="ghost"
+            class="bookmarks-header-icon"
             onClick={props.onRefresh}
             disabled={props.isLoading}
             aria-label="Refresh bookmarks"
             title="Refresh"
-          >
-            ↻
-          </button>
+          />
         </div>
       </div>
 
@@ -318,14 +275,16 @@ export function JjBookmarksPanel(props: JjBookmarksPanelProps) {
           }}
           spellcheck={false}
         />
-        <button
+        <Button
           type="button"
+          variant="secondary"
+          size="large"
           class="bookmarks-base-apply"
           onClick={handleApplyCustomBase}
           disabled={!state.customBase.trim() || isBusy()}
         >
           Set
-        </button>
+        </Button>
       </div>
 
       <div class="bookmarks-base-quick">
@@ -354,16 +313,16 @@ export function JjBookmarksPanel(props: JjBookmarksPanelProps) {
       <div class="bookmarks-revisions">
         <div class="bookmarks-revisions-header">
           <span>Recent revisions</span>
-          <button
+          <IconButton
             type="button"
-            class="ghost icon-button bookmarks-revisions-refresh"
+            icon="refresh"
+            variant="ghost"
+            class="bookmarks-revisions-refresh"
             onClick={props.onRefreshRecent}
             disabled={props.recentIsLoading}
             aria-label="Refresh recent revisions"
             title="Refresh"
-          >
-            ↻
-          </button>
+          />
         </div>
         <Show when={props.recentError}>
           <div class="bookmarks-error">{props.recentError}</div>
@@ -497,9 +456,11 @@ export function JjBookmarksPanel(props: JjBookmarksPanelProps) {
                   </Show>
                   <div class="bookmarks-row-actions">
                     <Show when={bookmark.kind === "local"}>
-                      <button
+                      <IconButton
                         type="button"
-                        class="ghost icon-button bookmarks-row-action"
+                        icon="arrow-up"
+                        variant="ghost"
+                        class="bookmarks-row-action"
                         onClick={(event) => {
                           event.stopPropagation();
                           void handlePushBookmark(bookmark);
@@ -507,26 +468,12 @@ export function JjBookmarksPanel(props: JjBookmarksPanelProps) {
                         disabled={isBusy()}
                         aria-label={`Push bookmark ${bookmark.name}`}
                         title="Push bookmark"
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" aria-hidden>
-                          <path
-                            d="M12 17V7"
-                            stroke="currentColor"
-                            stroke-width="1.6"
-                            stroke-linecap="round"
-                          />
-                          <path
-                            d="M8 10l4-4 4 4"
-                            stroke="currentColor"
-                            stroke-width="1.6"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                          />
-                        </svg>
-                      </button>
-                      <button
+                      />
+                      <IconButton
                         type="button"
-                        class="ghost icon-button bookmarks-row-action"
+                        icon="edit"
+                        variant="ghost"
+                        class="bookmarks-row-action"
                         onClick={(event) => {
                           event.stopPropagation();
                           props.onRenameBookmark(bookmark);
@@ -534,31 +481,12 @@ export function JjBookmarksPanel(props: JjBookmarksPanelProps) {
                         disabled={isBusy()}
                         aria-label={`Rename bookmark ${bookmark.name}`}
                         title="Rename bookmark"
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" aria-hidden>
-                          <path
-                            d="M4 20h4l10.5-10.5a2.12 2.12 0 0 0 0-3L16.5 4.5a2.12 2.12 0 0 0-3 0L3 15v5Z"
-                            stroke="currentColor"
-                            stroke-width="1.4"
-                            stroke-linejoin="round"
-                          />
-                          <path
-                            d="M13.5 5.5l5 5"
-                            stroke="currentColor"
-                            stroke-width="1.4"
-                            stroke-linecap="round"
-                          />
-                          <path
-                            d="M14 20h6"
-                            stroke="currentColor"
-                            stroke-width="1.4"
-                            stroke-linecap="round"
-                          />
-                        </svg>
-                      </button>
-                      <button
+                      />
+                      <IconButton
                         type="button"
-                        class="ghost icon-button bookmarks-row-action"
+                        icon="arrow-branch"
+                        variant="ghost"
+                        class="bookmarks-row-action"
                         onClick={(event) => {
                           event.stopPropagation();
                           props.onMoveBookmark(bookmark);
@@ -566,25 +494,12 @@ export function JjBookmarksPanel(props: JjBookmarksPanelProps) {
                         disabled={isBusy()}
                         aria-label={`Move bookmark ${bookmark.name}`}
                         title="Move bookmark"
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" aria-hidden>
-                          <path
-                            d="M4 20h4l10.5-10.5a2.12 2.12 0 0 0 0-3L16.5 4.5a2.12 2.12 0 0 0-3 0L3 15v5Z"
-                            stroke="currentColor"
-                            stroke-width="1.4"
-                            stroke-linejoin="round"
-                          />
-                          <path
-                            d="M13.5 5.5l5 5"
-                            stroke="currentColor"
-                            stroke-width="1.4"
-                            stroke-linecap="round"
-                          />
-                        </svg>
-                      </button>
-                      <button
+                      />
+                      <IconButton
                         type="button"
-                        class="ghost icon-button bookmarks-row-action destructive"
+                        icon="trash"
+                        variant="ghost"
+                        class="bookmarks-row-action destructive"
                         onClick={(event) => {
                           event.stopPropagation();
                           props.onDeleteBookmark(bookmark);
@@ -592,39 +507,14 @@ export function JjBookmarksPanel(props: JjBookmarksPanelProps) {
                         disabled={isBusy()}
                         aria-label={`Delete bookmark ${bookmark.name}`}
                         title="Delete bookmark"
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" aria-hidden>
-                          <path
-                            d="M4 7h16"
-                            stroke="currentColor"
-                            stroke-width="1.4"
-                            stroke-linecap="round"
-                          />
-                          <path
-                            d="M10 11v6M14 11v6"
-                            stroke="currentColor"
-                            stroke-width="1.4"
-                            stroke-linecap="round"
-                          />
-                          <path
-                            d="M6 7l1 13h10l1-13"
-                            stroke="currentColor"
-                            stroke-width="1.4"
-                            stroke-linejoin="round"
-                          />
-                          <path
-                            d="M9 7V4h6v3"
-                            stroke="currentColor"
-                            stroke-width="1.4"
-                            stroke-linejoin="round"
-                          />
-                        </svg>
-                      </button>
+                      />
                     </Show>
                     <Show when={bookmark.kind === "remote"}>
-                      <button
+                      <IconButton
                         type="button"
-                        class="ghost icon-button bookmarks-row-action"
+                        icon={bookmark.tracked ? "minus" : "plus"}
+                        variant="ghost"
+                        class="bookmarks-row-action"
                         onClick={(event) => {
                           event.stopPropagation();
                           if (bookmark.tracked) {
@@ -640,36 +530,7 @@ export function JjBookmarksPanel(props: JjBookmarksPanelProps) {
                             : `Track remote bookmark ${bookmark.symbol}`
                         }
                         title={bookmark.tracked ? "Untrack bookmark" : "Track bookmark"}
-                      >
-                        <Show
-                          when={bookmark.tracked}
-                          fallback={
-                            <svg viewBox="0 0 24 24" fill="none" aria-hidden>
-                              <path
-                                d="M12 8v8"
-                                stroke="currentColor"
-                                stroke-width="1.6"
-                                stroke-linecap="round"
-                              />
-                              <path
-                                d="M8 12h8"
-                                stroke="currentColor"
-                                stroke-width="1.6"
-                                stroke-linecap="round"
-                              />
-                            </svg>
-                          }
-                        >
-                          <svg viewBox="0 0 24 24" fill="none" aria-hidden>
-                            <path
-                              d="M8 12h8"
-                              stroke="currentColor"
-                              stroke-width="1.6"
-                              stroke-linecap="round"
-                            />
-                          </svg>
-                        </Show>
-                      </button>
+                      />
                     </Show>
                   </div>
                 </div>

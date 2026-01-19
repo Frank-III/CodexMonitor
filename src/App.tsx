@@ -9,7 +9,7 @@ import {
 import "./styles/tailwind.css";
 
 // UI library components
-import { DialogProvider, Toast } from "./ui";
+import { DialogProvider, Icon, ResizeHandle, Toast, Tooltip } from "./ui";
 
 // Legacy styles (to be migrated)
 import "./styles/base.css";
@@ -17,7 +17,6 @@ import "./styles/buttons.css";
 import "./styles/sidebar.css";
 import "./styles/home.css";
 import "./styles/main.css";
-import "./styles/messages.css";
 import "./styles/approval-toasts.css";
 import "./styles/composer.css";
 import "./styles/diff.css";
@@ -34,20 +33,21 @@ import "./styles/compact-nav.css";
 import "./styles/thread-tabs.css";
 import "./styles/multi-terminal.css";
 import "./styles/file-viewer-tabs.css";
+import "./ui/resize-handle.css";
 import { Sidebar } from "./components/Sidebar";
 import { Home } from "./components/Home";
 import { MainHeader } from "./components/MainHeader";
 import { ChatSplitView } from "./components/ChatSplitView";
 import { ApprovalToasts } from "./components/ApprovalToasts";
 import { Composer } from "./components/Composer";
-import { GitDiffPanel } from "./components/GitDiffPanel";
+import { VcsDiffPanel } from "./components/VcsDiffPanel";
 import { GitHubIssuesPanel } from "./components/GitHubIssuesPanel";
 import { JjGraphPanel } from "./components/JjGraphPanel";
 import { JjBookmarksPanel } from "./components/JjBookmarksPanel";
 import { JjInfoPanel } from "./components/JjInfoPanel";
 import { JjStackPanel } from "./components/JjStackPanel";
-import { TerminalPanel } from "./components/TerminalPanel";
 import { MultiTerminalPanel } from "./components/MultiTerminalPanel";
+import { WorkspaceReviewPanel } from "./components/WorkspaceReviewPanel";
 import { FileViewerTabs } from "./components/FileViewerTabs";
 import { WorkspaceTasksPanel } from "./components/WorkspaceTasksPanel";
 import { RyuStackPanel, type RyuAction, type RyuOptions } from "./components/RyuStackPanel";
@@ -68,6 +68,7 @@ import { CloneRepositoryPrompt } from "./components/CloneRepositoryPrompt";
 import { ReparentWorktreePrompt } from "./components/ReparentWorktreePrompt";
 import { CompactNav, type CompactNavTab } from "./components/CompactNav";
 import { AppCommands } from "./components/AppCommands";
+import { TitlebarSearchButton } from "./components/TitlebarSearchButton";
 import { CommandProvider } from "./context";
 import {
   createWorkspacesStore,
@@ -88,7 +89,6 @@ import {
   createQueuedSendStore,
   createResizableSizes,
   createAppSettingsStore,
-  createTerminalStore,
   createMultiTerminalStore,
   createFileViewerStore,
   createFileTabsStore,
@@ -147,20 +147,23 @@ function App() {
   type RightPanelTab =
     | "info"
     | "stack"
-    | "diff"
     | "files"
     | "tasks"
     | "prStack"
     | "issues"
     | "graph"
     | "bookmarks"
-    | "terminal"
     | "context";
   const [rightPanelTab, setRightPanelTab] = createSignal<RightPanelTab>("info");
   const [isCompactLayout, setIsCompactLayout] = createSignal(
     typeof window !== "undefined" ? window.matchMedia("(max-width: 960px)").matches : false,
   );
   const [compactTab, setCompactTab] = createSignal<CompactNavTab>("chat");
+  const [bottomPanelOpen, setBottomPanelOpen] = createSignal(false);
+  const [bottomPanelHeight, setBottomPanelHeight] = createSignal(280);
+  const [reviewOpenByWorkspaceId, setReviewOpenByWorkspaceId] = createSignal<
+    Record<string, { left: boolean; right: boolean }>
+  >({});
   let composerTextarea: HTMLTextAreaElement | undefined;
 
   const rightPanelLabel = createMemo(() => {
@@ -169,16 +172,12 @@ function App() {
         return "Info";
       case "stack":
         return "Stack";
-      case "diff":
-        return "Diff";
       case "files":
         return "Files";
       case "tasks":
         return "Tasks";
       case "prStack":
         return "PR Stack";
-      case "terminal":
-        return "Terminal";
       case "graph":
         return "Graph";
       case "bookmarks":
@@ -199,6 +198,28 @@ function App() {
     }
   };
 
+  const isReviewOpen = (workspaceId: string | null, pane: "left" | "right") => {
+    if (!workspaceId) return false;
+    const entry = reviewOpenByWorkspaceId()[workspaceId];
+    return pane === "right" ? entry?.right ?? false : entry?.left ?? false;
+  };
+
+  const setReviewOpen = (workspaceId: string | null, pane: "left" | "right", open: boolean) => {
+    if (!workspaceId) return;
+    setReviewOpenByWorkspaceId((prev) => {
+      const existing = prev[workspaceId] ?? { left: false, right: false };
+      const next = pane === "right" ? { ...existing, right: open } : { ...existing, left: open };
+      return { ...prev, [workspaceId]: next };
+    });
+  };
+
+  const openReviewInActivePane = () => {
+    const workspaceId = workspacesStore.activeWorkspaceId();
+    if (!workspaceId) return;
+    const pane = threadLayoutStore.activeLayout().activePane;
+    setReviewOpen(workspaceId, pane, true);
+  };
+
   let lastLoggedUiError: unknown = null;
   const reportUiError = (error: unknown) => {
     if (error === lastLoggedUiError) {
@@ -216,6 +237,47 @@ function App() {
   };
 
   const appSettingsStore = createAppSettingsStore();
+
+  onMount(() => {
+    const handleWindowError = (event: ErrorEvent) => {
+      const error = event.error;
+      const message = error instanceof Error ? error.message : event.message;
+      const stack = error instanceof Error ? error.stack : undefined;
+
+      addDebugEntry({
+        id: `${Date.now()}-window-error`,
+        timestamp: Date.now(),
+        source: "error",
+        label: "window/error",
+        payload: stack ?? message,
+      });
+
+      Promise.resolve().then(() => logFrontendError(message, stack));
+    };
+
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      const reason = event.reason;
+      const message = reason instanceof Error ? reason.message : String(reason);
+      const stack = reason instanceof Error ? reason.stack : undefined;
+
+      addDebugEntry({
+        id: `${Date.now()}-window-unhandledrejection`,
+        timestamp: Date.now(),
+        source: "error",
+        label: "window/unhandledrejection",
+        payload: stack ?? message,
+      });
+
+      Promise.resolve().then(() => logFrontendError(message, stack));
+    };
+
+    window.addEventListener("error", handleWindowError);
+    window.addEventListener("unhandledrejection", handleUnhandledRejection);
+    onCleanup(() => {
+      window.removeEventListener("error", handleWindowError);
+      window.removeEventListener("unhandledrejection", handleUnhandledRejection);
+    });
+  });
 
   onMount(() => {
     const mediaQuery = window.matchMedia("(max-width: 960px)");
@@ -273,7 +335,6 @@ function App() {
   );
   const worktreeStackOpsStore = createWorktreeStackOpsStore({ onDebug: addDebugEntry });
   const workspaceTasksStore = createWorkspaceTasksStore({ onDebug: addDebugEntry });
-  const terminalStore = createTerminalStore({ onDebug: addDebugEntry });
   const multiTerminalStore = createMultiTerminalStore({ onDebug: addDebugEntry });
 
   const ryuSummaryByWorkspaceId = createMemo(() => {
@@ -675,6 +736,30 @@ function App() {
     return files.length > 0
       ? `${files.length} file${files.length === 1 ? "" : "s"} changed`
       : "Working tree clean";
+  };
+
+  const recoverStaleWorkingCopy = async (workspaceId: string) => {
+    try {
+      const output = await jjWorkspaceUpdateStale(workspaceId);
+      addDebugEntry({
+        id: `${Date.now()}-client-jj-update-stale`,
+        timestamp: Date.now(),
+        source: "client",
+        label: "jj workspace update-stale",
+        payload: output.trim() ? output : "ok",
+      });
+      await vcsStatusStore.refresh();
+      await jjGraphStore.refresh();
+    } catch (err) {
+      addDebugEntry({
+        id: `${Date.now()}-client-jj-update-stale-error`,
+        timestamp: Date.now(),
+        source: "error",
+        label: "jj workspace update-stale error",
+        payload: err instanceof Error ? err.message : String(err),
+      });
+      throw err;
+    }
   };
   const activeWorktreeDivergence = () => {
     const workspace = workspacesStore.activeWorkspace();
@@ -1466,8 +1551,12 @@ function App() {
     />
   );
 
-  const MainView = (props: { compact: boolean }) => (
-    <section class="main" classList={{ "compact-main": props.compact }}>
+	  const MainView = (props: { compact: boolean }) => (
+	    <section
+        class="main"
+        classList={{ "compact-main": props.compact }}
+        data-terminal-open={bottomPanelOpen() ? "true" : "false"}
+      >
       <Show
         when={workspacesStore.activeWorkspace()}
         fallback={
@@ -1480,18 +1569,39 @@ function App() {
       >
         {(workspace) => (
           <>
-            <div class="main-topbar">
+	            <div class="main-topbar">
               <MainHeader
                 workspace={workspace()}
                 branchName={vcsStatusStore.status().branchName || "unknown"}
                 divergence={activeWorktreeDivergence()}
               />
+              <div class="main-topbar-center">
+                <Show when={!props.compact}>
+                  <TitlebarSearchButton workspaceName={workspace().name} />
+                </Show>
+              </div>
               <div class="actions">
-                <TokenUsage
-                  currentUsage={usageStore.currentTurnUsage}
-                  threadUsage={usageStore.activeThreadUsage}
-                  sessionTotals={usageStore.totalSessionTokens}
-                />
+                  <Tooltip
+                    value={bottomPanelOpen() ? "Hide terminal" : "Show terminal"}
+                    placement="bottom"
+                  >
+                    <button
+                      type="button"
+                      class="ghost icon-button"
+                      onClick={() => setBottomPanelOpen((prev) => !prev)}
+                      aria-label={bottomPanelOpen() ? "Hide terminal" : "Show terminal"}
+                    >
+                      <Icon
+                        name={bottomPanelOpen() ? "layout-bottom-full" : "layout-bottom"}
+                        size="small"
+                      />
+                    </button>
+                  </Tooltip>
+	                <TokenUsage
+	                  currentUsage={usageStore.currentTurnUsage}
+	                  threadUsage={usageStore.activeThreadUsage}
+	                  sessionTotals={usageStore.totalSessionTokens}
+	                />
                 <button
                   class="ghost icon-button"
                   onClick={() => setDebugOpen((prev) => !prev)}
@@ -1536,6 +1646,23 @@ function App() {
                 itemsByThread={threadsStore.itemsByThread}
                 threadNameById={activeThreadNameById}
                 threadStatusById={threadsStore.threadStatusById}
+                reviewCount={() => vcsStatusStore.status().files.length}
+                isReviewActive={(pane) => isReviewOpen(workspace().id, pane)}
+                onSelectReview={(pane) => {
+                  setReviewOpen(workspace().id, pane, true);
+                }}
+                renderReview={() => (
+                  <WorkspaceReviewPanel
+                    workspaceId={workspace().id}
+                    files={vcsStatusStore.status().files}
+                    error={vcsStatusStore.status().error}
+                    onRecoverStale={() => recoverStaleWorkingCopy(workspace().id)}
+                    onOpenFile={(path) => {
+                      openRightPanelTab("files");
+                      fileViewerStore.selectFile(path);
+                    }}
+                  />
+                )}
                 onFocusPane={(pane) => {
                   const workspaceId = workspacesStore.activeWorkspaceId();
                   if (!workspaceId) return;
@@ -1544,6 +1671,9 @@ function App() {
                 onSelectThread={(threadId, pane) => {
                   const workspaceId = workspacesStore.activeWorkspaceId();
                   if (!workspaceId) return;
+                  if (pane) {
+                    setReviewOpen(workspaceId, pane, false);
+                  }
                   threadLayoutStore.ensureThreadOpen(workspaceId, threadId, pane);
                   threadsStore.setActiveThreadId(threadId, workspaceId);
                 }}
@@ -1565,6 +1695,7 @@ function App() {
                   }
                   const threadId = await threadsStore.startThreadForWorkspace(workspace.id);
                   if (!threadId) return;
+                  setReviewOpen(workspace.id, pane, false);
                   threadLayoutStore.ensureThreadOpen(workspace.id, threadId, pane);
                   setTimeout(() => composerTextarea?.focus(), 0);
                 }}
@@ -1586,10 +1717,10 @@ function App() {
               />
             </div>
 
-            <Composer
-              value={input}
-              onChange={(value) => setInput(value)}
-              onSend={() => handleSend(composerDraftsStore.attachments())}
+	            <Composer
+	              value={input}
+	              onChange={(value) => setInput(value)}
+	              onSend={() => handleSend(composerDraftsStore.attachments())}
               attachments={composerDraftsStore.attachments}
               onAttachmentsChange={(next) => composerDraftsStore.setAttachments(next)}
               steerEnabled={steerEnabled}
@@ -1619,14 +1750,36 @@ function App() {
               onApprovalPolicyChange={setApprovalPolicy}
               skills={skillsStore.skills}
               onSelectSkill={handleSelectSkill}
-              onSlashCommand={handleSlashCommand}
-              onShellCommand={handleShellCommand}
-            />
-            <DebugPanel
-              entries={debugEntries}
-              isOpen={debugOpen}
-              onToggle={() => setDebugOpen((prev) => !prev)}
-              onClear={() => setDebugEntries([])}
+	              onSlashCommand={handleSlashCommand}
+	              onShellCommand={handleShellCommand}
+	            />
+              <Show when={bottomPanelOpen()}>
+                <div
+                  class="bottom-terminal-panel"
+                  style={{ height: `${bottomPanelHeight()}px` }}
+                >
+                  <ResizeHandle
+                    direction="vertical"
+                    size={bottomPanelHeight()}
+                    min={100}
+                    max={typeof window !== "undefined" ? window.innerHeight * 0.6 : 400}
+                    collapseThreshold={50}
+                    onResize={setBottomPanelHeight}
+                    onCollapse={() => setBottomPanelOpen(false)}
+                  />
+                  <div class="bottom-terminal-content">
+                    <MultiTerminalPanel
+                      workspaceId={workspace().id}
+                      store={multiTerminalStore}
+                    />
+                  </div>
+                </div>
+              </Show>
+	            <DebugPanel
+	              entries={debugEntries}
+	              isOpen={debugOpen}
+	              onToggle={() => setDebugOpen((prev) => !prev)}
+	              onClear={() => setDebugEntries([])}
               onCopy={handleCopyDebug}
             />
           </>
@@ -1688,25 +1841,17 @@ function App() {
         <button
           type="button"
           class="right-panel-tab"
-          classList={{ active: rightPanelTab() === "diff" }}
-          onClick={() => openRightPanelTab("diff")}
-        >
-          Diff
-        </button>
-        <button
-          type="button"
-          class="right-panel-tab"
           classList={{ active: rightPanelTab() === "files" }}
           onClick={() => openRightPanelTab("files")}
         >
           Files
         </button>
-        <button
-          type="button"
-          class="right-panel-tab"
-          classList={{ active: rightPanelTab() === "tasks" }}
-          onClick={() => openRightPanelTab("tasks")}
-        >
+	        <button
+	          type="button"
+	          class="right-panel-tab"
+	          classList={{ active: rightPanelTab() === "tasks" }}
+	          onClick={() => openRightPanelTab("tasks")}
+	        >
           Tasks
           <Show
             when={
@@ -1723,20 +1868,12 @@ function App() {
                 : "!"}
             </span>
           </Show>
-        </button>
-        <button
-          type="button"
-          class="right-panel-tab"
-          classList={{ active: rightPanelTab() === "terminal" }}
-          onClick={() => openRightPanelTab("terminal")}
-        >
-          Terminal
-        </button>
-        <button
-          type="button"
-          class="right-panel-tab"
-          classList={{ active: rightPanelTab() === "graph" }}
-          onClick={() => openRightPanelTab("graph")}
+	        </button>
+	        <button
+	          type="button"
+	          class="right-panel-tab"
+	          classList={{ active: rightPanelTab() === "graph" }}
+	          onClick={() => openRightPanelTab("graph")}
         >
           Graph
         </button>
@@ -1871,40 +2008,6 @@ function App() {
         />
       </Show>
 
-      <Show when={rightPanelTab() === "diff"}>
-        <GitDiffPanel
-          workspaceId={workspace().id}
-          branchName={vcsStatusStore.status().branchName || "unknown"}
-          totalAdditions={vcsStatusStore.status().totalAdditions}
-          totalDeletions={vcsStatusStore.status().totalDeletions}
-          fileStatus={fileStatus()}
-          error={vcsStatusStore.status().error}
-          files={vcsStatusStore.status().files}
-          onRecoverStale={async () => {
-            try {
-              const output = await jjWorkspaceUpdateStale(workspace().id);
-              addDebugEntry({
-                id: `${Date.now()}-client-jj-update-stale`,
-                timestamp: Date.now(),
-                source: "client",
-                label: "jj workspace update-stale",
-                payload: output.trim() ? output : "ok",
-              });
-              await vcsStatusStore.refresh();
-              await jjGraphStore.refresh();
-            } catch (err) {
-              addDebugEntry({
-                id: `${Date.now()}-client-jj-update-stale-error`,
-                timestamp: Date.now(),
-                source: "error",
-                label: "jj workspace update-stale error",
-                payload: err instanceof Error ? err.message : String(err),
-              });
-            }
-          }}
-        />
-      </Show>
-
       <Show when={rightPanelTab() === "files"}>
         <FileViewerTabs
           workspaceId={workspace().id}
@@ -1918,8 +2021,8 @@ function App() {
         />
       </Show>
 
-      <Show when={rightPanelTab() === "tasks"}>
-        <WorkspaceTasksPanel
+	      <Show when={rightPanelTab() === "tasks"}>
+	        <WorkspaceTasksPanel
           workspaceName={workspace().name}
           commandsWorkspaceId={(spotlightSettingsWorkspace() ?? workspace()).id}
           commandsWorkspaceName={(spotlightSettingsWorkspace() ?? workspace()).name}
@@ -1981,15 +2084,8 @@ function App() {
               runCommand,
             });
           }}
-        />
-      </Show>
-
-      <Show when={rightPanelTab() === "terminal"}>
-        <MultiTerminalPanel
-          workspaceId={workspace().id}
-          store={multiTerminalStore}
-        />
-      </Show>
+	        />
+	      </Show>
 
       <Show when={rightPanelTab() === "graph"}>
         <JjGraphPanel
@@ -2197,8 +2293,8 @@ function App() {
     );
   };
 
-  const WideLayout = () => (
-    <ResizableRoot sizes={resizableSizes()} onSizesChange={handleResizableSizesChange} class="app-resizable">
+  const HorizontalContent = () => (
+    <ResizableRoot sizes={resizableSizes()} onSizesChange={handleResizableSizesChange} class="app-resizable-horizontal">
       <ResizablePanel minSize={0.15} maxSize={0.35} class="sidebar-panel">
         <SidebarView />
       </ResizablePanel>
@@ -2213,7 +2309,7 @@ function App() {
         {(workspace) => (
           <>
             <ResizableHandle aria-label="Resize right panel" class="resize-handle" />
-            <ResizablePanel minSize={0.15} maxSize={0.35} class="right-panel">
+            <ResizablePanel minSize={0.15} maxSize={0.45} class="right-panel">
               <RightPanelView workspace={workspace} />
             </ResizablePanel>
           </>
@@ -2221,6 +2317,15 @@ function App() {
       </Show>
     </ResizableRoot>
   );
+
+	  const WideLayout = () => (
+	    <div class="wide-layout-container">
+	      {/* Main content area - grows to fill available space */}
+	      <div class="wide-layout-content">
+	        <HorizontalContent />
+	      </div>
+	    </div>
+	  );
 
   const CompactLayout = () => (
     <div class="compact-shell">
@@ -2266,22 +2371,15 @@ function App() {
               const message = error instanceof Error ? error.message : String(error);
               const stack = error instanceof Error ? error.stack : undefined;
               return (
-                <div style={{ padding: "24px", "font-size": "12px", color: "rgba(255, 255, 255, 0.85)" }}>
-                  <div style={{ "font-weight": "700", "font-size": "14px", "margin-bottom": "8px" }}>
+                <div class="p-6 text-12-regular text-text-base">
+                  <div class="mb-2 text-14-medium text-text-strong">
                     UI crashed during render
                   </div>
-                  <div style={{ color: "rgba(255, 255, 255, 0.6)", "margin-bottom": "12px" }}>
+                  <div class="mb-3 text-12-regular text-text-weak">
                     Check the debug panel / terminal output for details.
                   </div>
                   <pre
-                    style={{
-                      margin: 0,
-                      padding: "12px",
-                      "border-radius": "8px",
-                      background: "rgba(0, 0, 0, 0.35)",
-                      "white-space": "pre-wrap",
-                      "word-break": "break-word",
-                    }}
+                    class="m-0 whitespace-pre-wrap break-words rounded-md border border-border-weaker-base bg-surface-inset-base p-3 text-12-mono text-text-base"
                   >
                     {(stack ?? message).trim()}
                   </pre>
@@ -2306,6 +2404,21 @@ function App() {
               }}
               onToggleDebug={() => setDebugOpen((prev) => !prev)}
               onOpenSettings={() => setSettingsOpen(true)}
+              onOpenTerminal={() => {
+                const next = !bottomPanelOpen();
+                setBottomPanelOpen(next);
+                if (next && isCompactLayout()) {
+                  setCompactTab("chat");
+                }
+              }}
+              onOpenFiles={() => openRightPanelTab("files")}
+              onOpenDiff={() => {
+                openReviewInActivePane();
+                if (isCompactLayout()) {
+                  setCompactTab("chat");
+                }
+              }}
+              onFocusComposer={() => composerTextarea?.focus()}
             />
             <Show when={!isCompactLayout()} fallback={<CompactLayout />}>
               <WideLayout />
@@ -2729,7 +2842,7 @@ function App() {
                     </Show>
 
 	                  <Show when={rightPanelTab() === "diff"}>
-	                    <GitDiffPanel
+	                    <VcsDiffPanel
 	                      workspaceId={workspace().id}
 	                      branchName={vcsStatusStore.status().branchName || "unknown"}
 	                      totalAdditions={vcsStatusStore.status().totalAdditions}

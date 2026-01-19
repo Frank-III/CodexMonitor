@@ -1,26 +1,24 @@
-import { splitProps, type JSX } from "solid-js"
+import { splitProps, type ComponentProps } from "solid-js"
 
-export interface ResizeHandleProps extends Omit<JSX.HTMLAttributes<HTMLDivElement>, "onResize"> {
+export interface ResizeHandleProps extends Omit<ComponentProps<"div">, "onResize"> {
   direction: "horizontal" | "vertical"
   size: number
   min: number
   max: number
+  collapseThreshold?: number
   onResize: (size: number) => void
   onCollapse?: () => void
-  collapseThreshold?: number
 }
 
 export function ResizeHandle(props: ResizeHandleProps) {
-  const [local, rest] = splitProps(props, [
+  const [local, others] = splitProps(props, [
     "direction",
     "size",
     "min",
     "max",
+    "collapseThreshold",
     "onResize",
     "onCollapse",
-    "collapseThreshold",
-    "class",
-    "classList",
   ])
 
   const handleMouseDown = (e: MouseEvent) => {
@@ -29,13 +27,17 @@ export function ResizeHandle(props: ResizeHandleProps) {
     const startSize = local.size
     let current = startSize
 
+    // Disable selection during drag
     document.body.style.userSelect = "none"
     document.body.style.overflow = "hidden"
 
     const onMouseMove = (moveEvent: MouseEvent) => {
       const pos = local.direction === "horizontal" ? moveEvent.clientX : moveEvent.clientY
+      // For vertical, dragging up increases size (negative delta)
       const delta = local.direction === "vertical" ? start - pos : pos - start
       current = startSize + delta
+
+      // Clamp between min/max
       const clamped = Math.min(local.max, Math.max(local.min, current))
       local.onResize(clamped)
     }
@@ -46,6 +48,7 @@ export function ResizeHandle(props: ResizeHandleProps) {
       document.removeEventListener("mousemove", onMouseMove)
       document.removeEventListener("mouseup", onMouseUp)
 
+      // Auto-collapse if below threshold
       const threshold = local.collapseThreshold ?? 0
       if (local.onCollapse && threshold > 0 && current < threshold) {
         local.onCollapse()
@@ -58,14 +61,10 @@ export function ResizeHandle(props: ResizeHandleProps) {
 
   return (
     <div
-      {...rest}
       data-component="resize-handle"
       data-direction={local.direction}
-      classList={{
-        ...(local.classList ?? {}),
-        [local.class ?? ""]: !!local.class,
-      }}
       onMouseDown={handleMouseDown}
+      {...others}
     />
   )
 }

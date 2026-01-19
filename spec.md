@@ -33,7 +33,7 @@ This document describes the **current** user-facing capabilities and the current
   - `Issues`: GitHub Issues panel (when available).
   - `Graph`: JJ graph view.
   - `Bookmarks`: JJ bookmark management + git remote actions.
-  - `Terminal`: workspace PTY terminal.
+- **Bottom Terminal Panel**: workspace PTY terminal (tabs + resize).
 - **Plan Panel**: shows per-turn plan updates (if the agent emits them).
 - **Debug Panel**: event log (client/server/app-server) with clipboard export.
 
@@ -151,7 +151,8 @@ The Markdown renderer detects `@path/to/file` and `@path/to/dir/` patterns in te
 
 ## Terminal
 
-- Right panel terminal backed by a Rust PTY.
+- Bottom terminal panel backed by a Rust PTY.
+- Multiple terminals via tabs (per workspace).
 - Session open/write/resize/close over Tauri IPC.
 
 ## VCS (JJ)
@@ -225,7 +226,7 @@ Prioritized “JJ-first” features to move beyond the Git mental model:
 2. **PR Stack (ryu) deep integration**: show the parsed stack structure + tracked state (not just raw output), and surface PR links after submit.
 3. **Bookmark-first “review targets”**: pick a bookmark/revset range (`base..@`, `trunk()..@`, “this stack”) for review runs and diffs.
 4. **Workspace automation**: richer `codexmonitor.setup.json` support (multiple named scripts, per-workspace presets, one-click rerun, errors surfaced in UI).
-5. **Terminal polish**: better right-panel terminal UX (split, copy/search, resize perf) and stronger task/PTY streaming consistency.
+5. **Terminal polish**: better terminal panel UX (copy/search, resize perf) and stronger task/PTY streaming consistency.
 
 ## Reference Apps (Notes)
 

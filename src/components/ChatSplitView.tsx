@@ -1,4 +1,4 @@
-import { createMemo, Show, type Accessor } from "solid-js";
+import { createMemo, Show, type Accessor, type JSX } from "solid-js";
 import type { ConversationItem } from "../types";
 import type { ThreadPaneId } from "../stores/threadLayout";
 import type { WorkspacePathPreviewStore } from "../stores/workspacePathPreview";
@@ -26,6 +26,10 @@ type ChatSplitViewProps = {
   itemsByThread: Accessor<Record<string, ConversationItem[]>>;
   threadNameById: Accessor<Record<string, string>>;
   threadStatusById: Accessor<Record<string, ThreadStatus | undefined>>;
+  reviewCount?: Accessor<number>;
+  isReviewActive?: (pane: ThreadPaneId) => boolean;
+  onSelectReview?: (pane: ThreadPaneId) => void;
+  renderReview?: (pane: ThreadPaneId) => JSX.Element;
   onFocusPane: (pane: ThreadPaneId) => void;
   onSelectThread: (threadId: string, pane?: ThreadPaneId) => void;
   onCloseThread: (threadId: string) => void;
@@ -62,6 +66,8 @@ export function ChatSplitView(props: ChatSplitViewProps) {
   const renderPane = (pane: ThreadPaneId, state: Accessor<PaneState>) => {
     const isFocused = createMemo(() => props.activePane() === pane);
     const activeThreadId = createMemo(() => state().active);
+    const isReviewActive = createMemo(() => (props.isReviewActive ? props.isReviewActive(pane) : false));
+    const reviewCount = createMemo(() => props.reviewCount?.() ?? 0);
     const items = createMemo(() => {
       const threadId = activeThreadId();
       if (!threadId) return [];
@@ -82,6 +88,15 @@ export function ChatSplitView(props: ChatSplitViewProps) {
       >
         <ThreadTabsBar
           pane={pane}
+          leadingTabs={() => [
+            {
+              id: "review",
+              title: "Review",
+              count: reviewCount() > 0 ? reviewCount() : null,
+              active: isReviewActive(),
+              onSelect: () => props.onSelectReview?.(pane),
+            },
+          ]}
           tabs={() => state().tabs}
           activeThreadId={activeThreadId}
           isFocused={isFocused}
@@ -96,25 +111,32 @@ export function ChatSplitView(props: ChatSplitViewProps) {
           onOpenSplit={pane === "left" ? props.onOpenSplit : undefined}
           onCloseSplit={pane === "right" ? props.onCloseSplit : undefined}
         />
-        <Show
-          when={activeThreadId()}
-          fallback={
-            <div class="chat-pane-empty">
-              <div class="chat-pane-empty-title">No thread selected</div>
-              <div class="chat-pane-empty-subtitle">
-                Start a new thread or pick one from the sidebar.
+        <Show when={isReviewActive()}>
+          <div class="chat-pane-review">
+            {props.renderReview ? props.renderReview(pane) : null}
+          </div>
+        </Show>
+        <Show when={!isReviewActive()}>
+          <Show
+            when={activeThreadId()}
+            fallback={
+              <div class="chat-pane-empty">
+                <div class="chat-pane-empty-title">No thread selected</div>
+                <div class="chat-pane-empty-subtitle">
+                  Start a new thread or pick one from the sidebar.
+                </div>
               </div>
-            </div>
-          }
-        >
-          <Messages
-            items={items}
-            isThinking={() => status()?.isProcessing ?? false}
-            processingStartedAt={() => status()?.processingStartedAt ?? null}
-            lastDurationMs={() => status()?.lastDurationMs ?? null}
-            onOpenFile={props.onOpenFile}
-            pathPreview={props.pathPreview}
-          />
+            }
+          >
+            <Messages
+              items={items}
+              isThinking={() => status()?.isProcessing ?? false}
+              processingStartedAt={() => status()?.processingStartedAt ?? null}
+              lastDurationMs={() => status()?.lastDurationMs ?? null}
+              onOpenFile={props.onOpenFile}
+              pathPreview={props.pathPreview}
+            />
+          </Show>
         </Show>
       </div>
     );

@@ -1,6 +1,8 @@
-import { For, Show, createMemo } from "solid-js";
+import { Dialog as KobalteDialog } from "@kobalte/core/dialog";
+import { Show, createMemo } from "solid-js";
 import { createStore } from "solid-js/store";
 import type { WorkspaceInfo } from "../types";
+import { Button, Checkbox, Dialog, Select, TextField } from "../ui";
 
 type ReparentWorktreePromptProps = {
   open: boolean;
@@ -100,160 +102,110 @@ function ReparentWorktreePromptContent(props: ReparentWorktreePromptProps) {
   };
 
   return (
-    <div
-      class="absolute inset-0 z-50 flex items-center justify-center bg-[rgba(0,0,0,0.45)] backdrop-blur-[12px] backdrop-saturate-[120%] [-webkit-app-region:no-drag]"
-      role="presentation"
-      onMouseDown={(event) => {
-        if (event.currentTarget === event.target) {
-          props.onClose();
-        }
+    <KobalteDialog
+      modal
+      open={true}
+      onOpenChange={(open) => {
+        if (open) return;
+        props.onClose();
       }}
     >
-      <div
-        class="w-[calc(100vw-40px)] max-w-[640px] max-h-[calc(100vh-80px)] overflow-auto rounded-[14px] border border-white/10 bg-[rgba(18,22,32,0.98)] p-[14px] shadow-[0_18px_36px_rgba(0,0,0,0.35)]"
-        role="dialog"
-        aria-modal="true"
-      >
-        <div class="mb-[10px] flex items-center justify-between gap-3">
-          <div class="text-[12px] font-bold uppercase tracking-[0.1em] text-white/70">
-            Reparent Worktree
-          </div>
-          <button
-            type="button"
-            class="ghost icon-button"
-            onClick={props.onClose}
-            aria-label="Close reparent prompt"
-          >
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden>
-              <path
-                d="M6 6l12 12M18 6L6 18"
-                stroke="currentColor"
-                stroke-width="1.6"
-                stroke-linecap="round"
-              />
-            </svg>
-          </button>
-        </div>
+      <KobalteDialog.Portal>
+        <KobalteDialog.Overlay data-component="dialog-overlay" />
+        <Dialog title="Reparent worktree">
+          <div class="flex flex-col gap-4 px-6 pb-6">
+            <Show when={props.worktree} fallback={<div class="text-13-regular text-text-weak">Select a worktree to reparent.</div>}>
+              {(worktree) => (
+                <>
+                  <div class="text-13-regular text-text-weak">
+                    Moves <span class="text-text-strong">{worktree().name}</span> onto a new base workspace by running{" "}
+                    <code class="font-mono text-text-base">jj rebase -b @ -o &lt;base&gt;</code>.
+                  </div>
 
-        <div class="px-[2px] pb-[10px] pt-[6px] text-[12px] leading-relaxed text-white/70">
-          <Show when={props.worktree} fallback={<div>Select a worktree to reparent.</div>}>
-            {(worktree) => (
-              <>
-                <div class="mb-[10px]">
-                  Moves{" "}
-                  <span class="font-semibold text-white/85">{worktree().name}</span>{" "}
-                  onto a new base workspace by running{" "}
-                  <code class="text-white/80">jj rebase -b @ -o &lt;base&gt;</code>.
-                </div>
+                  <div class="grid gap-4">
+                    <div class="flex flex-col gap-2">
+                      <div class="text-12-medium text-text-weak">Base workspace</div>
+                      <Select<WorkspaceInfo>
+                        size="large"
+                        variant="secondary"
+                        options={props.bases}
+                        current={selectedBase() ?? undefined}
+                        value={(entry) => entry.id}
+                        label={(entry) => (entry.kind === "main" ? `Main: ${entry.name}` : `Worktree: ${entry.name}`)}
+                        groupBy={(entry) => (entry.kind === "main" ? "Main" : "Worktrees")}
+                        onSelect={(entry) => {
+                          if (!entry) return;
+                          handleBaseChange(entry.id);
+                        }}
+                        disabled={state.isSaving || props.bases.length === 0}
+                      />
+                      <Show when={!props.bases.length}>
+                        <div class="text-13-regular text-text-on-critical-weak">
+                          No valid bases found (cannot reparent onto itself or descendants).
+                        </div>
+                      </Show>
+                    </div>
 
-                <div class="grid gap-[10px]">
-                  <label class="grid gap-[6px]">
-                    <span class="text-[11px] font-semibold uppercase tracking-[0.08em] text-white/50">
-                      Base workspace
-                    </span>
-                    <select
-                      class="w-full rounded-[10px] border border-white/10 bg-white/5 px-[10px] py-[8px] text-[12px] text-white/85 outline-none focus:border-white/20"
-                      value={state.baseId}
-                      onChange={(event) => handleBaseChange(event.currentTarget.value)}
-                      disabled={state.isSaving}
-                    >
-                      <For each={props.bases}>
-                        {(base) => (
-                          <option value={base.id}>
-                            {base.kind === "main" ? `Main: ${base.name}` : `Worktree: ${base.name}`}
-                          </option>
-                        )}
-                      </For>
-                    </select>
-                    <Show when={!props.bases.length}>
-                      <div class="text-[11px] text-red-200/80">
-                        No valid bases found (cannot reparent onto itself or descendants).
-                      </div>
-                    </Show>
-                  </label>
-
-                  <label class="grid gap-[6px]">
-                    <span class="text-[11px] font-semibold uppercase tracking-[0.08em] text-white/50">
-                      Base revset
-                    </span>
-                    <input
-                      class="w-full rounded-[10px] border border-white/10 bg-white/5 px-[10px] py-[8px] font-mono text-[12px] text-white/85 outline-none focus:border-white/20"
+                    <TextField
+                      label="Base revset"
                       value={state.baseRevset}
-                      onInput={(event) => {
+                      onChange={(value) => {
                         setState({
-                          baseRevset: event.currentTarget.value,
+                          baseRevset: value,
                           baseRevsetDirty: true,
                         });
                       }}
                       placeholder={defaultRevsetForBase(selectedBase())}
                       disabled={state.isSaving}
                       spellcheck={false}
+                      class="font-mono"
+                      description="Use @ for base working copy, @- for the base commit, or trunk() on main."
                     />
-                    <div class="text-[11px] text-white/55">
-                      Use <code class="text-white/80">@</code> for base working copy,{" "}
-                      <code class="text-white/80">@-</code> for the base commit, or{" "}
-                      <code class="text-white/80">trunk()</code> on main.
-                    </div>
-                  </label>
 
-                  <label class="flex items-start gap-[8px] rounded-[12px] border border-white/10 bg-white/5 p-[10px] text-[11px] text-white/60">
-                    <input
-                      type="checkbox"
-                      class="mt-[2px]"
-                      checked={state.restack}
-                      disabled={state.isSaving || props.descendantCount === 0}
-                      onChange={(event) => setState({ restack: event.currentTarget.checked })}
-                    />
-                    <div class="flex flex-col gap-[4px]">
-                      <span class="font-semibold text-white/75">Restack downstream worktrees</span>
-                      <Show
-                        when={props.descendantCount > 0}
-                        fallback={<span>No downstream worktrees found.</span>}
+                    <div class="rounded-md bg-surface-base px-3 py-2">
+                      <Checkbox
+                        checked={state.restack}
+                        disabled={state.isSaving || props.descendantCount === 0}
+                        onChange={(checked) => setState({ restack: checked })}
+                        description={
+                          props.descendantCount > 0
+                            ? `Rebase ${props.descendantCount} downstream worktree(s) onto the updated base chain.`
+                            : "No downstream worktrees found."
+                        }
                       >
-                        <span>
-                          Rebase {props.descendantCount} downstream worktree(s) onto the updated base chain.
-                        </span>
-                      </Show>
+                        Restack downstream worktrees
+                      </Checkbox>
                     </div>
-                  </label>
-                </div>
-
-                <Show when={isNoop()}>
-                  <div class="mt-[12px] rounded-[10px] border border-white/10 bg-white/5 p-[10px] text-[11px] text-white/60">
-                    No changes selected.
                   </div>
-                </Show>
 
-                <Show when={state.error}>
-                  <div class="mt-[12px] whitespace-pre-wrap break-words rounded-[10px] border border-red-300/20 bg-red-300/10 p-[10px] text-[12px] text-red-200">
-                    {state.error}
-                  </div>
-                </Show>
-              </>
-            )}
-          </Show>
-        </div>
+                  <Show when={isNoop()}>
+                    <div class="rounded-md bg-surface-base px-3 py-2 text-13-regular text-text-weak">
+                      No changes selected.
+                    </div>
+                  </Show>
 
-        <div class="flex justify-end gap-[10px] border-t border-white/10 pt-[8px]">
-          <button
-            type="button"
-            class="secondary"
-            onClick={props.onClose}
-            disabled={state.isSaving}
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            class="primary"
-            onClick={handleReparent}
-            disabled={!canSave()}
-          >
-            {state.isSaving ? "Reparenting…" : "Reparent"}
-          </button>
-        </div>
-      </div>
-    </div>
+                  <Show when={state.error}>
+                    {(error) => (
+                      <div class="rounded-md bg-surface-critical-weak px-3 py-2 text-13-regular text-text-on-critical-weak">
+                        {error()}
+                      </div>
+                    )}
+                  </Show>
+                </>
+              )}
+            </Show>
+
+            <div class="flex justify-end gap-2 pt-2">
+              <Button variant="ghost" onClick={props.onClose} disabled={state.isSaving}>
+                Cancel
+              </Button>
+              <Button variant="primary" onClick={handleReparent} disabled={!canSave()}>
+                {state.isSaving ? "Reparenting…" : "Reparent"}
+              </Button>
+            </div>
+          </div>
+        </Dialog>
+      </KobalteDialog.Portal>
+    </KobalteDialog>
   );
 }
-

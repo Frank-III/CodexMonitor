@@ -1,6 +1,7 @@
 import { createEffect, createMemo, createSignal, For, on, Show } from "solid-js";
 import { createStore } from "solid-js/store";
 import type { WorkspaceTaskRun } from "../stores/workspaceTasks";
+import { Button, Checkbox, IconButton } from "../ui";
 
 type WorkspaceTasksPanelProps = {
   workspaceName: string;
@@ -136,25 +137,26 @@ export function WorkspaceTasksPanel(props: WorkspaceTasksPanelProps) {
           </div>
           <div class="tasks-row-right">
             <span class={`tasks-status ${statusClass("setup")}`}>{statusLabel("setup")}</span>
-            <button
+            <Button
               type="button"
-              class="secondary"
+              variant="secondary"
+              size="small"
               onClick={props.onRunSetup}
               disabled={resolveRun("setup")?.running}
               title="Run setup"
             >
               Run
-            </button>
-            <button
+            </Button>
+            <IconButton
               type="button"
-              class="ghost tasks-clear"
+              icon="close"
+              variant="ghost"
+              class="tasks-clear"
               onClick={() => props.onClearTask("setup")}
               disabled={!resolveRun("setup") || resolveRun("setup")?.running}
               title="Clear output"
               aria-label="Clear output"
-            >
-              ×
-            </button>
+            />
           </div>
         </div>
 
@@ -162,23 +164,21 @@ export function WorkspaceTasksPanel(props: WorkspaceTasksPanelProps) {
           <div class="tasks-row-left">
             <div class="tasks-row-title">Run</div>
             <div class="tasks-row-subtitle">
-              <label class="inline-flex items-center gap-[8px]">
-                <input
-                  type="checkbox"
-                  checked={props.spotlightEnabled}
-                  onChange={(event) => props.onToggleSpotlight(event.currentTarget.checked)}
-                />
-                <span>
-                  Spotlight mode (run in repo root by temporarily applying this workspace’s commit)
-                </span>
-              </label>
+              <Checkbox
+                checked={props.spotlightEnabled}
+                onChange={(enabled) => props.onToggleSpotlight(enabled)}
+                description="Run in the repo root by temporarily applying this workspace’s commit."
+              >
+                Spotlight mode
+              </Checkbox>
             </div>
           </div>
           <div class="tasks-row-right">
             <span class={`tasks-status ${statusClass(primaryRunTask())}`}>{statusLabel(primaryRunTask())}</span>
-            <button
+            <Button
               type="button"
-              class="secondary"
+              variant="secondary"
+              size="small"
               onClick={() => {
                 setActiveTask(primaryRunTask());
                 primaryRunAction()();
@@ -187,10 +187,11 @@ export function WorkspaceTasksPanel(props: WorkspaceTasksPanelProps) {
               title={primaryRunLabel()}
             >
               {primaryRunLabel()}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
-              class="ghost"
+              variant="ghost"
+              size="small"
               onClick={() => {
                 setActiveTask(secondaryRunTask());
                 secondaryRunAction()();
@@ -199,10 +200,12 @@ export function WorkspaceTasksPanel(props: WorkspaceTasksPanelProps) {
               title={secondaryRunLabel()}
             >
               {secondaryRunLabel()}
-            </button>
-            <button
+            </Button>
+            <IconButton
               type="button"
-              class="ghost tasks-clear"
+              icon="close"
+              variant="ghost"
+              class="tasks-clear"
               onClick={() => {
                 props.onClearTask("run");
                 props.onClearTask("spotlight");
@@ -210,9 +213,7 @@ export function WorkspaceTasksPanel(props: WorkspaceTasksPanelProps) {
               disabled={runClearDisabled()}
               title="Clear output"
               aria-label="Clear output"
-            >
-              ×
-            </button>
+            />
           </div>
         </div>
 
@@ -331,22 +332,24 @@ export function WorkspaceTasksPanel(props: WorkspaceTasksPanelProps) {
               <div class="tasks-error">{commands.error}</div>
             </Show>
             <div class="tasks-commands-actions">
-              <button
+              <Button
                 type="button"
-                class="secondary"
+                variant="secondary"
+                size="small"
                 onClick={handleSaveCommands}
                 disabled={!commands.dirty || commands.saving}
               >
                 {commands.saving ? "Saving…" : "Save"}
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
-                class="ghost"
+                variant="ghost"
+                size="small"
                 onClick={handleResetCommands}
                 disabled={!commands.dirty || commands.saving}
               >
                 Reset
-              </button>
+              </Button>
             </div>
           </div>
 	      </div>

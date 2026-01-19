@@ -1,4 +1,5 @@
 import { For, Show, type Accessor } from "solid-js";
+import { Button } from "../ui";
 import type { DebugEntry } from "../types";
 
 type DebugPanelProps = {
@@ -30,12 +31,12 @@ export function DebugPanel(props: DebugPanelProps) {
         <div class="debug-header">
           <div class="debug-title">Debug</div>
           <div class="debug-actions">
-            <button class="ghost" onClick={props.onCopy}>
+            <Button variant="ghost" size="small" onClick={props.onCopy}>
               Copy
-            </button>
-            <button class="ghost" onClick={props.onClear}>
+            </Button>
+            <Button variant="ghost" size="small" onClick={props.onClear}>
               Clear
-            </button>
+            </Button>
           </div>
         </div>
         <div class="debug-list">

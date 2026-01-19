@@ -4,8 +4,8 @@
   gap: 16px;
   padding: 4px 12px;
   font-size: 11px;
-  color: var(--text-secondary, #888);
-  background: var(--surface-secondary, rgba(255, 255, 255, 0.03));
+  color: var(--text-weak);
+  background: var(--surface-inset-base);
   border-radius: 6px;
   font-variant-numeric: tabular-nums;
 }
@@ -18,7 +18,7 @@
 }
 
 .token-usage-label {
-  color: var(--text-tertiary, #666);
+  color: var(--text-weaker);
   font-weight: 500;
 }
 
@@ -29,20 +29,20 @@
 }
 
 .token-input {
-  color: var(--accent-blue, #60a5fa);
+  color: var(--text-interactive-base);
 }
 
 .token-output {
-  color: var(--accent-green, #4ade80);
+  color: var(--text-on-success-weak);
 }
 
 .token-separator {
-  color: var(--text-tertiary, #555);
+  color: var(--text-weaker);
   margin: 0 1px;
 }
 
 .token-usage-turns {
-  color: var(--text-tertiary, #666);
+  color: var(--text-weaker);
   font-size: 10px;
 }
 
@@ -64,8 +64,8 @@
   gap: 6px;
   padding: 4px 10px;
   font-size: 11px;
-  color: var(--warning-text, #fbbf24);
-  background: var(--warning-bg, rgba(251, 191, 36, 0.1));
+  color: var(--text-on-warning-weak);
+  background: var(--surface-warning-weak);
   border-radius: 6px;
 }
 
@@ -77,7 +77,7 @@
 
 .rate-limit-progress {
   height: 3px;
-  background: var(--surface-tertiary, rgba(255, 255, 255, 0.1));
+  background: var(--surface-inset-base);
   border-radius: 2px;
   overflow: hidden;
   min-width: 60px;
@@ -85,10 +85,10 @@
 
 .rate-limit-progress-bar {
   height: 100%;
-  background: var(--warning-text, #fbbf24);
+  background: var(--surface-warning-strong);
   transition: width 0.3s ease;
 }
 
 .rate-limit-progress-bar.critical {
-  background: var(--error-text, #f87171);
+  background: var(--surface-critical-strong);
 }

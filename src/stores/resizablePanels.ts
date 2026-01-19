@@ -1,7 +1,8 @@
 import { makePersisted } from "@solid-primitives/storage";
 import { createSignal } from "solid-js";
 
-const DEFAULT_SIZES = [0.22, 0.55, 0.23];
+const DEFAULT_SIZES = [0.22, 0.5, 0.28];
+const LEGACY_DEFAULT_SIZES = [0.22, 0.55, 0.23];
 
 export function createResizableSizes() {
   const [sizes, setSizesInternal] = makePersisted(createSignal(DEFAULT_SIZES), {
@@ -20,7 +21,10 @@ export function createResizableSizes() {
       try {
         const parsed = JSON.parse(value);
         if (Array.isArray(parsed) && parsed.every((v) => typeof v === "number")) {
-          return parsed;
+          const matchesLegacyDefault =
+            parsed.length === LEGACY_DEFAULT_SIZES.length &&
+            parsed.every((v, index) => Math.abs(v - LEGACY_DEFAULT_SIZES[index]) < 0.0005);
+          return matchesLegacyDefault ? DEFAULT_SIZES : parsed;
         }
         return DEFAULT_SIZES;
       } catch {

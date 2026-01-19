@@ -79,13 +79,13 @@ export function SessionReview(props: SessionReviewProps) {
       >
         <div data-slot="session-review-title">Session changes</div>
         <div data-slot="session-review-actions">
+          {props.actions}
           <Button size="normal" icon="chevron-grabber-vertical" onClick={handleExpandOrCollapseAll}>
             <Switch>
               <Match when={open().length > 0}>Collapse all</Match>
               <Match when={true}>Expand all</Match>
             </Switch>
           </Button>
-          {props.actions}
         </div>
       </div>
       <div

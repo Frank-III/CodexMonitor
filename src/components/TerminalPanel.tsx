@@ -1,4 +1,5 @@
 import { Show, createEffect, createSignal, on, onCleanup, onMount } from "solid-js";
+import { Button } from "../ui";
 
 type TerminalPanelProps = {
   workspaceId: string;
@@ -114,14 +115,17 @@ export function TerminalPanel(props: TerminalPanelProps) {
       };
       container.addEventListener("pointerdown", pointerDownHandler);
 
-      const attachCustomKeyEventHandler = (term as any)?.attachCustomKeyEventHandler as
-        | ((handler: (event: KeyboardEvent) => boolean) => void)
-        | undefined;
-      attachCustomKeyEventHandler?.((event) => {
+      term.attachCustomKeyEventHandler((event) => {
         const key = event.key.toLowerCase();
+
+        // Allow ctrl-` to be handled by the app (toggle terminal panel).
+        if (event.ctrlKey && !event.metaKey && !event.altKey && key === "`") {
+          return true;
+        }
+
         const isCopy =
           (event.metaKey && !event.ctrlKey && !event.altKey && key === "c") ||
-          (event.ctrlKey && event.shiftKey && !event.metaKey && key === "c");
+          (event.ctrlKey && event.shiftKey && !event.metaKey && !event.altKey && key === "c");
         if (isCopy) {
           const hasSelection = (term as any)?.hasSelection?.() as boolean | undefined;
           if (!hasSelection) {
@@ -133,7 +137,7 @@ export function TerminalPanel(props: TerminalPanelProps) {
 
         const isPaste =
           (event.metaKey && !event.ctrlKey && !event.altKey && key === "v") ||
-          (event.ctrlKey && event.shiftKey && !event.metaKey && key === "v");
+          (event.ctrlKey && event.shiftKey && !event.metaKey && !event.altKey && key === "v");
         if (isPaste) {
           void pasteClipboard();
           return true;
@@ -200,9 +204,11 @@ export function TerminalPanel(props: TerminalPanelProps) {
       <div class="terminal-header">
         <div class="terminal-title">{props.title ?? "Terminal"}</div>
         <div class="terminal-actions">
-          <button
+          <Button
             type="button"
-            class="ghost terminal-action"
+            variant="ghost"
+            size="small"
+            class="terminal-action"
             onClick={() => {
               if (!term) return;
               // xterm-compatible clear: write ANSI clear + reset scrollback position.
@@ -212,10 +218,12 @@ export function TerminalPanel(props: TerminalPanelProps) {
             disabled={!isReady()}
           >
             Clear
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            class="ghost terminal-action"
+            variant="ghost"
+            size="small"
+            class="terminal-action"
             onClick={async () => {
               await props.onClose();
               await disposeTerminal();
@@ -223,10 +231,12 @@ export function TerminalPanel(props: TerminalPanelProps) {
             disabled={props.isOpening}
           >
             Close
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            class="ghost terminal-action"
+            variant="ghost"
+            size="small"
+            class="terminal-action"
             onClick={async () => {
               await props.onClose();
               await disposeTerminal();
@@ -235,7 +245,7 @@ export function TerminalPanel(props: TerminalPanelProps) {
             disabled={props.isOpening}
           >
             Restart
-          </button>
+          </Button>
         </div>
       </div>
 

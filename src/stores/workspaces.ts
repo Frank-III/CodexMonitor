@@ -11,12 +11,14 @@ import {
   syncWorktreeStack as syncWorktreeStackService,
   reparentWorktree as reparentWorktreeService,
   removeWorkspace as removeWorkspaceService,
+  restoreJjOperation,
   listWorkspaces,
   pickWorkspacePath,
   updateWorktreeBaseRevset as updateWorktreeBaseRevsetService,
   updateWorkspaceBaseRevset as updateWorkspaceBaseRevsetService,
   updateWorkspaceSettings as updateWorkspaceSettingsService,
 } from "../services/tauri";
+import { showToast } from "../ui/Toast";
 
 export type WorkspacesStore = {
   workspaces: () => WorkspaceInfo[];
@@ -182,6 +184,10 @@ export function createWorkspacesStore(options: {
       return;
     }
 
+    const destinationEntry = workspaces().find(
+      (workspace) => workspace.id === (entry.base_id ?? entry.parent_id),
+    );
+
     onDebug?.({
       id: `${Date.now()}-client-worktree-land`,
       timestamp: Date.now(),
@@ -190,12 +196,45 @@ export function createWorkspacesStore(options: {
       payload: { workspaceId: id, destination: entry.base_id ?? entry.parent_id ?? null },
     });
 
-    const destinationId = await landWorktreeService(id);
+    const landResult = await landWorktreeService(id);
 
     setWorkspaces((prev) => prev.filter((workspace) => workspace.id !== id));
     if (activeWorkspaceId() === id) {
-      setActiveWorkspaceId(destinationId ?? null);
+      setActiveWorkspaceId(landResult.destinationId ?? null);
     }
+
+    // Show undo toast with 10 second duration
+    showToast({
+      title: "Landed worktree",
+      description: `Changes squashed into ${destinationEntry?.name ?? "destination"}`,
+      variant: "success",
+      duration: 10000,
+      actions: [
+        {
+          label: "Undo",
+          onClick: async () => {
+            try {
+              await restoreJjOperation(landResult.destinationId, landResult.previousOpId);
+              showToast({
+                title: "Undo complete",
+                description: "Operation restored to previous state",
+                variant: "success",
+                duration: 3000,
+              });
+              // Refresh workspaces after undo (worktree will need to be re-added manually)
+              await refreshWorkspaces();
+            } catch (err) {
+              showToast({
+                title: "Undo failed",
+                description: err instanceof Error ? err.message : String(err),
+                variant: "error",
+                duration: 5000,
+              });
+            }
+          },
+        },
+      ],
+    });
   }
 
   async function syncWorktree(id: string): Promise<void> {
@@ -212,7 +251,38 @@ export function createWorkspacesStore(options: {
       payload: { workspaceId: id, baseRevset: entry.base_revset ?? null },
     });
 
-    await syncWorktreeService(id);
+    const syncResult = await syncWorktreeService(id);
+
+    // Show undo toast with 10 second duration
+    showToast({
+      title: "Synced worktree",
+      description: `${entry.name} rebased onto base`,
+      variant: "success",
+      duration: 10000,
+      actions: [
+        {
+          label: "Undo",
+          onClick: async () => {
+            try {
+              await restoreJjOperation(id, syncResult.previousOpId);
+              showToast({
+                title: "Undo complete",
+                description: "Sync operation reverted",
+                variant: "success",
+                duration: 3000,
+              });
+            } catch (err) {
+              showToast({
+                title: "Undo failed",
+                description: err instanceof Error ? err.message : String(err),
+                variant: "error",
+                duration: 5000,
+              });
+            }
+          },
+        },
+      ],
+    });
   }
 
   async function syncWorktreeStack(id: string): Promise<void> {

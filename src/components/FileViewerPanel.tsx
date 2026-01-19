@@ -7,6 +7,7 @@ import {
   onCleanup,
   onMount,
 } from "solid-js";
+import { IconButton } from "../ui";
 import type { WorkspaceFileContent } from "../types";
 
 type FileViewerPanelProps = {
@@ -50,16 +51,16 @@ export function FileViewerPanel(props: FileViewerPanelProps) {
           <span>Files</span>
           <span class="file-viewer-header-meta">{props.workspaceName}</span>
         </div>
-        <button
+        <IconButton
           type="button"
-          class="ghost issues-refresh"
+          icon="refresh"
+          variant="ghost"
+          class="issues-refresh"
           onClick={props.onRefreshFiles}
           disabled={props.isLoadingFiles}
           aria-label="Refresh file list"
           title="Refresh"
-        >
-          ↻
-        </button>
+        />
       </div>
 
       <div class="file-viewer-search">
@@ -112,16 +113,16 @@ export function FileViewerPanel(props: FileViewerPanelProps) {
             <Show when={fileMetaLabel()}>
               {(label) => <div class="file-viewer-current-meta">{label()}</div>}
             </Show>
-            <button
+            <IconButton
               type="button"
-              class="ghost file-viewer-current-refresh"
+              icon="refresh"
+              variant="ghost"
+              class="file-viewer-current-refresh"
               onClick={props.onRefreshFile}
               disabled={!props.selectedPath || props.isLoadingFile}
               aria-label="Reload file"
               title="Reload"
-            >
-              ↻
-            </button>
+            />
           </div>
         </div>
 

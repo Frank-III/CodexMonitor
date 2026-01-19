@@ -14,7 +14,7 @@ use crate::state::AppState;
 use crate::storage::write_workspaces;
 use crate::types::{WorktreeDivergence, WorkspaceEntry, WorkspaceInfo, WorkspaceKind, WorkspaceSettings};
 use crate::utils::{build_default_path_env, normalize_git_path};
-use crate::vcs::{count_revset_commits, get_wc_commit, load_jj_workspace, resolve_single_revset_commit_id, snapshot_working_copy};
+use crate::vcs::{count_revset_commits, get_current_jj_op_id, get_wc_commit, load_jj_workspace, resolve_single_revset_commit_id, snapshot_working_copy};
 
 #[derive(Debug, serde::Deserialize, Clone, Copy)]
 #[serde(rename_all = "kebab-case")]
@@ -78,6 +78,21 @@ enum WorktreeStackEvent {
 
 fn emit_worktree_stack_event(app: &AppHandle, event: WorktreeStackEvent) {
     let _ = app.emit("worktree-stack-event", event);
+}
+
+/// Result of a land_worktree operation, includes undo information
+#[derive(Debug, serde::Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct LandResult {
+    pub destination_id: String,
+    pub previous_op_id: String,
+}
+
+/// Result of a sync_worktree operation, includes undo information
+#[derive(Debug, serde::Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct SyncResult {
+    pub previous_op_id: String,
 }
 
 #[derive(Debug, serde::Serialize, Clone, Copy, PartialEq, Eq)]
@@ -1740,7 +1755,7 @@ pub(crate) async fn run_ryu(
 }
 
 #[tauri::command]
-pub(crate) async fn land_worktree(id: String, state: State<'_, AppState>) -> Result<String, String> {
+pub(crate) async fn land_worktree(id: String, state: State<'_, AppState>) -> Result<LandResult, String> {
     let (entry, destination, base_revset) = {
         let workspaces = state.workspaces.lock().await;
         let entry = workspaces.get(&id).cloned().ok_or("workspace not found")?;
@@ -1774,6 +1789,9 @@ pub(crate) async fn land_worktree(id: String, state: State<'_, AppState>) -> Res
 
     let worktree_path = PathBuf::from(&entry.path);
     let destination_path = PathBuf::from(&destination.path);
+
+    // Capture current op ID before the destructive operation for undo support
+    let previous_op_id = get_current_jj_op_id(&destination_path).await?;
 
     // Snapshot the worktree working copy so @ reflects the latest file state.
     let source_commit = {
@@ -1836,11 +1854,14 @@ pub(crate) async fn land_worktree(id: String, state: State<'_, AppState>) -> Res
         write_workspaces(&state.storage_path, &list)?;
     }
 
-    Ok(destination.id)
+    Ok(LandResult {
+        destination_id: destination.id,
+        previous_op_id,
+    })
 }
 
 #[tauri::command]
-pub(crate) async fn sync_worktree(id: String, state: State<'_, AppState>) -> Result<(), String> {
+pub(crate) async fn sync_worktree(id: String, state: State<'_, AppState>) -> Result<SyncResult, String> {
     let (entry, destination, base_revset) = {
         let workspaces = state.workspaces.lock().await;
         let entry = workspaces.get(&id).cloned().ok_or("workspace not found")?;
@@ -1868,7 +1889,13 @@ pub(crate) async fn sync_worktree(id: String, state: State<'_, AppState>) -> Res
         (entry, destination, base_revset)
     };
 
-    rebase_worktree_onto(&entry, &destination, &base_revset, state.inner()).await
+    // Capture current op ID before the rebase operation for undo support
+    let worktree_path = PathBuf::from(&entry.path);
+    let previous_op_id = get_current_jj_op_id(&worktree_path).await?;
+
+    rebase_worktree_onto(&entry, &destination, &base_revset, state.inner()).await?;
+
+    Ok(SyncResult { previous_op_id })
 }
 
 #[tauri::command]
@@ -2081,9 +2108,9 @@ pub(crate) async fn land_worktree_stack(
         }
 
         match land_worktree(target.workspace_id.clone(), state.clone()).await {
-            Ok(destination_id) => {
+            Ok(land_result) => {
                 if target.workspace_id == root_id {
-                    final_destination_id = Some(destination_id.clone());
+                    final_destination_id = Some(land_result.destination_id.clone());
                 }
                 emit_worktree_stack_event(
                     &app,
@@ -2097,7 +2124,7 @@ pub(crate) async fn land_worktree_stack(
                         total,
                         ok: true,
                         message: None,
-                        destination_id: Some(destination_id),
+                        destination_id: Some(land_result.destination_id),
                     },
                 );
             }

@@ -1398,3 +1398,283 @@ pub(crate) async fn get_github_issues(
 
     Ok(GitHubIssuesResponse { total, issues })
 }
+
+// ============================================================================
+// JJ Operation History & Undo Support
+// ============================================================================
+
+use serde::Serialize;
+
+/// Represents a jj operation from the operation log
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct JjOperation {
+    pub id: String,
+    pub description: String,
+    pub timestamp: i64,
+    pub is_current: bool,
+}
+
+/// Information about a commit with conflicts
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct ConflictedCommit {
+    pub change_id: String,
+    pub commit_id: String,
+    pub description: String,
+    pub conflicted_files: Vec<String>,
+}
+
+/// Result of checking for conflicts in a revset
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct ConflictInfo {
+    pub has_conflicts: bool,
+    pub conflicted_commits: Vec<ConflictedCommit>,
+}
+
+/// Get the current jj operation ID for a workspace
+pub(crate) async fn get_current_jj_op_id(workspace_path: &Path) -> Result<String, String> {
+    let workspace_root = resolve_jj_workspace_path(workspace_path)?;
+    let mut command = Command::new("jj");
+    command
+        .current_dir(&workspace_root)
+        .args(["op", "log", "-l1", "--no-graph", "-T", "self.id()"]);
+
+    if let Some(path_env) = build_default_path_env() {
+        command.env("PATH", path_env);
+    }
+
+    let output = command
+        .output()
+        .await
+        .map_err(|e| format!("Failed to run jj op log: {e}"))?;
+
+    if output.status.success() {
+        Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        Err(format!("Failed to get current op id: {}", stderr.trim()))
+    }
+}
+
+/// Get recent jj operations for a workspace
+#[tauri::command]
+pub(crate) async fn get_jj_operations(
+    workspace_id: String,
+    limit: Option<usize>,
+    state: State<'_, AppState>,
+) -> Result<Vec<JjOperation>, String> {
+    let entry = {
+        let workspaces = state.workspaces.lock().await;
+        workspaces
+            .get(&workspace_id)
+            .cloned()
+            .ok_or("workspace not found")?
+    };
+
+    let workspace_root = resolve_jj_workspace_path(Path::new(&entry.path))?;
+    let limit = limit.unwrap_or(10).clamp(1, 50);
+    let limit_str = limit.to_string();
+
+    // Get operation log with structured template
+    // Template: op_id|description|timestamp_ms|is_current\n
+    let template = r#"concat(self.id(), "|", self.description().first_line(), "|", self.time().start().format("%s"), "|", if(self.current_operation(), "true", "false"), "\n")"#;
+
+    let mut command = Command::new("jj");
+    command
+        .current_dir(&workspace_root)
+        .args(["op", "log", "--no-graph", "-n", &limit_str, "-T", template]);
+
+    if let Some(path_env) = build_default_path_env() {
+        command.env("PATH", path_env);
+    }
+
+    let output = command
+        .output()
+        .await
+        .map_err(|e| format!("Failed to run jj op log: {e}"))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("jj op log failed: {}", stderr.trim()));
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let mut operations = Vec::new();
+
+    for line in stdout.lines() {
+        let parts: Vec<&str> = line.split('|').collect();
+        if parts.len() >= 4 {
+            operations.push(JjOperation {
+                id: parts[0].to_string(),
+                description: parts[1].to_string(),
+                timestamp: parts[2].parse().unwrap_or(0),
+                is_current: parts[3] == "true",
+            });
+        }
+    }
+
+    Ok(operations)
+}
+
+/// Restore to a previous jj operation (undo)
+#[tauri::command]
+pub(crate) async fn restore_jj_operation(
+    workspace_id: String,
+    op_id: String,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let entry = {
+        let workspaces = state.workspaces.lock().await;
+        workspaces
+            .get(&workspace_id)
+            .cloned()
+            .ok_or("workspace not found")?
+    };
+
+    let workspace_root = resolve_jj_workspace_path(Path::new(&entry.path))?;
+
+    let mut command = Command::new("jj");
+    command
+        .current_dir(&workspace_root)
+        .args(["op", "restore", &op_id, "--no-pager"]);
+
+    if let Some(path_env) = build_default_path_env() {
+        command.env("PATH", path_env);
+    }
+
+    let output = command
+        .output()
+        .await
+        .map_err(|e| format!("Failed to run jj op restore: {e}"))?;
+
+    if output.status.success() {
+        Ok(())
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let detail = if stderr.trim().is_empty() {
+            stdout.trim()
+        } else {
+            stderr.trim()
+        };
+        Err(if detail.is_empty() {
+            "jj op restore failed.".to_string()
+        } else {
+            detail.to_string()
+        })
+    }
+}
+
+/// Check for conflicts in a revset (before land operation)
+#[tauri::command]
+pub(crate) async fn check_conflicts(
+    workspace_id: String,
+    revset: String,
+    state: State<'_, AppState>,
+) -> Result<ConflictInfo, String> {
+    let entry = {
+        let workspaces = state.workspaces.lock().await;
+        workspaces
+            .get(&workspace_id)
+            .cloned()
+            .ok_or("workspace not found")?
+    };
+
+    let workspace_root = resolve_jj_workspace_path(Path::new(&entry.path))?;
+
+    // Find commits with conflicts in the revset
+    // Template outputs: change_id|commit_id|description for conflicted commits only
+    let template = r#"if(conflict, concat(change_id.short(), "|", commit_id.short(), "|", description.first_line(), "\n"))"#;
+
+    let mut command = Command::new("jj");
+    command.current_dir(&workspace_root).args([
+        "log",
+        "-r",
+        &revset,
+        "--no-graph",
+        "-T",
+        template,
+    ]);
+
+    if let Some(path_env) = build_default_path_env() {
+        command.env("PATH", path_env);
+    }
+
+    let output = command
+        .output()
+        .await
+        .map_err(|e| format!("Failed to run jj log: {e}"))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("jj log failed: {}", stderr.trim()));
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let mut conflicted_commits = Vec::new();
+
+    for line in stdout.lines() {
+        if line.trim().is_empty() {
+            continue;
+        }
+        let parts: Vec<&str> = line.split('|').collect();
+        if parts.len() >= 3 {
+            let change_id = parts[0].to_string();
+            let commit_id = parts[1].to_string();
+            let description = parts[2].to_string();
+
+            // Get conflicted files for this commit
+            let conflicted_files = get_conflicted_files(&workspace_root, &commit_id).await?;
+
+            conflicted_commits.push(ConflictedCommit {
+                change_id,
+                commit_id,
+                description,
+                conflicted_files,
+            });
+        }
+    }
+
+    Ok(ConflictInfo {
+        has_conflicts: !conflicted_commits.is_empty(),
+        conflicted_commits,
+    })
+}
+
+/// Get the list of conflicted files for a specific commit
+async fn get_conflicted_files(workspace_root: &Path, commit_id: &str) -> Result<Vec<String>, String> {
+    let mut command = Command::new("jj");
+    command
+        .current_dir(workspace_root)
+        .args(["diff", "-r", commit_id, "--summary", "--no-pager"]);
+
+    if let Some(path_env) = build_default_path_env() {
+        command.env("PATH", path_env);
+    }
+
+    let output = command
+        .output()
+        .await
+        .map_err(|e| format!("Failed to run jj diff: {e}"))?;
+
+    if !output.status.success() {
+        // If diff fails, return empty list rather than error
+        return Ok(Vec::new());
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let mut conflicted_files = Vec::new();
+
+    for line in stdout.lines() {
+        // Lines starting with "C " indicate conflicts
+        if line.starts_with("C ") {
+            if let Some(path) = line.strip_prefix("C ") {
+                conflicted_files.push(path.trim().to_string());
+            }
+        }
+    }
+
+    Ok(conflicted_files)
+}

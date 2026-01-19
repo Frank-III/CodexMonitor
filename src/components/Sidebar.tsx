@@ -10,6 +10,7 @@ import {
 import type { DragEvent } from "@thisbeyond/solid-dnd";
 import { Avatar, Button, HoverCard, Icon, IconButton, Spinner, Tooltip } from "../ui";
 import { DropdownMenu } from "../ui/DropdownMenu";
+import { ContextMenu } from "../ui/ContextMenu";
 import type { ThreadSummary, WorkspaceInfo, WorktreeDivergence } from "../types";
 import { ConstrainDragXAxis } from "../utils/solid-dnd";
 
@@ -220,17 +221,40 @@ export function Sidebar(props: SidebarProps) {
     });
 
     const trigger = (
-      <button
-        type="button"
-        classList={{
-          "flex items-center justify-center size-10 p-1 rounded-lg overflow-hidden transition-colors cursor-default": true,
-          "bg-transparent border-2 border-icon-strong-base hover:bg-surface-base-hover": selected(),
-          "bg-transparent border border-transparent hover:bg-surface-base-hover hover:border-border-weak-base": !selected(),
-        }}
-        onClick={() => props.onSelectWorkspace(workspaceProps.workspace.id)}
-      >
-        <WorkspaceIcon workspace={workspaceProps.workspace} index={workspaceProps.index} notify />
-      </button>
+      <ContextMenu>
+        <ContextMenu.Trigger
+          onPointerDown={(event) => {
+            if (event.button !== 2) return;
+            props.onSelectWorkspace(workspaceProps.workspace.id);
+          }}
+        >
+          <button
+            type="button"
+            classList={{
+              "flex items-center justify-center size-10 p-1 rounded-lg overflow-hidden transition-colors cursor-default": true,
+              "bg-transparent border-2 border-icon-strong-base hover:bg-surface-base-hover": selected(),
+              "bg-transparent border border-transparent hover:bg-surface-base-hover hover:border-border-weak-base": !selected(),
+            }}
+            onClick={() => props.onSelectWorkspace(workspaceProps.workspace.id)}
+          >
+            <WorkspaceIcon workspace={workspaceProps.workspace} index={workspaceProps.index} notify />
+          </button>
+        </ContextMenu.Trigger>
+        <ContextMenu.Portal>
+          <ContextMenu.Content>
+            <ContextMenu.Item onSelect={() => props.onAddWorktreeAgent(workspaceProps.workspace)}>
+              <ContextMenu.ItemLabel>New worktree agent…</ContextMenu.ItemLabel>
+            </ContextMenu.Item>
+            <ContextMenu.Item onSelect={() => props.onAddAgent(workspaceProps.workspace)}>
+              <ContextMenu.ItemLabel>New session</ContextMenu.ItemLabel>
+            </ContextMenu.Item>
+            <ContextMenu.Separator />
+            <ContextMenu.Item onSelect={() => props.onDeleteWorkspace(workspaceProps.workspace.id)}>
+              <ContextMenu.ItemLabel>Close workspace</ContextMenu.ItemLabel>
+            </ContextMenu.Item>
+          </ContextMenu.Content>
+        </ContextMenu.Portal>
+      </ContextMenu>
     );
 
     return (
