@@ -16,9 +16,9 @@
   min-width: 86px;
   padding: 8px 10px;
   border-radius: 999px;
-  background: var(--surface-base);
-  border: 1px solid var(--border-weak-base);
-  color: var(--text-base);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.72);
   box-shadow: none;
   font-size: 12px;
   font-weight: 600;
@@ -31,23 +31,23 @@
 }
 
 .right-panel-tab:hover:not(.active) {
-  background: var(--surface-base-hover);
+  background: rgba(255, 255, 255, 0.07);
 }
 
 .right-panel-tab.active {
-  background: var(--surface-base-interactive-active);
-  border-color: var(--border-selected);
-  color: var(--text-strong);
+  background: rgba(99, 102, 241, 0.14);
+  border-color: rgba(99, 102, 241, 0.28);
+  color: rgba(255, 255, 255, 0.95);
 }
 
 .right-panel-tab-count {
   font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
   font-size: 10px;
-  color: var(--text-weak);
+  color: rgba(255, 255, 255, 0.55);
 }
 
 .right-panel-tab.active .right-panel-tab-count {
-  color: var(--text-selected);
+  color: rgba(255, 255, 255, 0.85);
 }
 
 /* Stack panel */
