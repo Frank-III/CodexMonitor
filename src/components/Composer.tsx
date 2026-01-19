@@ -703,8 +703,8 @@ export function Composer(props: ComposerProps) {
   return (
     <footer
       ref={composerRef}
-      class="relative flex flex-col gap-2 border-t border-border-subtle bg-surface-base/50 px-6 py-3 pb-5"
-      classList={{ "pointer-events-none opacity-50": !!props.disabled, "outline-2 outline-dashed outline-accent/60 -outline-offset-2": isDragging() }}
+      class="group/prompt-input relative mx-4 mb-4 flex flex-col overflow-clip rounded-md bg-[#232323] shadow-[0_0_0_1px_rgba(255,255,255,0.08),0_1px_2px_-1px_rgba(0,0,0,0.25),0_1px_2px_0_rgba(0,0,0,0.08)]"
+      classList={{ "pointer-events-none opacity-50": !!props.disabled, "border-dashed border-[var(--icon-info-active)]": isDragging() }}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onDragOver={handleDragOver}
@@ -764,25 +764,8 @@ export function Composer(props: ComposerProps) {
         </div>
       </Show>
 
-      <div class="flex items-center gap-2">
-        <button
-          type="button"
-          class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-white/6 text-text-subtle transition-colors hover:bg-white/10 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
-          onClick={handlePickImage}
-          disabled={props.disabled}
-          aria-label="Attach image"
-        >
-          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
-            <path
-              d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"
-              stroke="currentColor"
-              stroke-width="1.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-          </svg>
-        </button>
-        <div class="relative flex-1">
+      <div class="relative max-h-60 overflow-y-auto">
+        <div class="flex items-start">
           <textarea
             ref={(el) => {
               textareaRef = el;
@@ -792,11 +775,12 @@ export function Composer(props: ComposerProps) {
               props.onTextareaRef?.(el);
               autosizeTextarea(el);
             }}
-            class="h-10 max-h-60 min-h-10 w-full resize-none overflow-y-hidden border-none bg-transparent px-1 py-2 text-sm text-text-primary placeholder:text-text-weak focus:outline-none"
+            class="w-full resize-none border-none bg-transparent px-4 py-3 pr-12 text-sm text-[var(--text-strong)] placeholder:text-[var(--text-weak)] focus:outline-none"
+            style={{ "min-height": "44px", "max-height": "240px" }}
             placeholder={
               props.disabled
-                ? "Review in progress. Chat will re-enable when it completes."
-                : "Ask Codex... ($ skills, @ files, / commands, ! shell)"
+                ? "Review in progress..."
+                : 'Ask anything... "Explain this regex pattern"'
             }
             value={props.value()}
             onInput={(event) => {
@@ -912,135 +896,110 @@ export function Composer(props: ComposerProps) {
             </div>
           </div>
         </div>
-        <Show when={props.onStop && props.canStop}>
-          <button
-            type="button"
-            class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-white/8 transition-colors hover:bg-danger/20 disabled:cursor-not-allowed disabled:opacity-40"
-            onClick={props.onStop}
-            disabled={props.disabled || !props.canStop}
-            aria-label="Stop"
-          >
-            <span class="h-3 w-3 rounded-sm bg-danger" aria-hidden />
-          </button>
-        </Show>
-        <button
-          type="button"
-          class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-accent text-white transition-colors hover:bg-accent/80 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
-          onClick={handleSend}
-          disabled={props.disabled}
-          aria-label="Send"
-        >
-          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
-            <path d="M12 5l6 6m-6-6L6 11m6-6v14" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
-        </button>
       </div>
 
-      {/* Meta bar */}
-      <div class="flex flex-wrap items-center gap-2 border-t border-border-subtle pt-2.5">
-        <ComposerSelect
-          icon={
-            <svg viewBox="0 0 24 24" fill="none">
-              <path d="M7 8V6a5 5 0 0 1 10 0v2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
-              <rect x="4.5" y="8" width="15" height="11" rx="3" stroke="currentColor" stroke-width="1.4" />
-              <circle cx="9" cy="13" r="1" fill="currentColor" />
-              <circle cx="15" cy="13" r="1" fill="currentColor" />
-              <path d="M9 16h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
-            </svg>
-          }
-          label="Model"
-          value={props.selectedModelId() ?? ""}
-          onChange={(value) => props.onSelectModel(value)}
-          width="w-[100px]"
-        >
-          <Show when={props.models().length === 0}>
-            <option value="">No models</option>
+      {/* Bottom bar */}
+      <div class="relative flex items-center justify-between p-3">
+        <div class="flex items-center gap-0.5">
+          <ComposerSelect
+            label="Agent"
+            value="Build"
+            onChange={() => {}}
+          >
+            <option value="Build">Build</option>
+            <option value="Plan">Plan</option>
+            <option value="Ask">Ask</option>
+          </ComposerSelect>
+
+          <ComposerSelect
+            icon={
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none">
+                <path d="M7 8V6a5 5 0 0 1 10 0v2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
+                <rect x="4.5" y="8" width="15" height="11" rx="3" stroke="currentColor" stroke-width="1.4" />
+              </svg>
+            }
+            label="Model"
+            value={props.selectedModelId() ?? ""}
+            onChange={(value) => props.onSelectModel(value)}
+          >
+            <Show when={props.models().length === 0}>
+              <option value="">No models</option>
+            </Show>
+            <For each={props.models()}>
+              {(model) => <option value={model.id}>{model.displayName || model.model}</option>}
+            </For>
+          </ComposerSelect>
+
+          <Show when={props.reasoningOptions().length > 0}>
+            <ComposerSelect
+              label="Effort"
+              value={props.selectedEffort() ?? ""}
+              onChange={(value) => props.onSelectEffort(value)}
+            >
+              <For each={props.reasoningOptions()}>
+                {(effort) => <option value={effort}>{effort}</option>}
+              </For>
+            </ComposerSelect>
           </Show>
-          <For each={props.models()}>
-            {(model) => <option value={model.id}>{model.displayName || model.model}</option>}
-          </For>
-        </ComposerSelect>
+        </div>
 
-        <ComposerSelect
-          icon={
-            <svg viewBox="0 0 24 24" fill="none">
-              <path d="M12 4l7 3v5c0 4.5-3 7.5-7 8-4-0.5-7-3.5-7-8V7l7-3z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" />
-              <path d="M12 11v4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
-              <path d="M12 8.2h.01" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+        <div class="absolute right-2 bottom-2 flex items-center gap-2">
+          <button
+            type="button"
+            class="flex h-6 w-6 items-center justify-center rounded-md bg-transparent text-[var(--text-weak)] transition-colors hover:bg-[var(--surface-raised-base-hover)] hover:text-[var(--text-strong)]"
+            onClick={handlePickImage}
+            disabled={props.disabled}
+            aria-label="Attach file"
+          >
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="1.4" />
+              <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor" />
+              <path d="M21 15l-5-5L5 21" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
-          }
-          label="Access mode"
-          value={accessMode()}
-          onChange={(value) => handleAccessModeChange(value as AccessMode)}
-          width="w-[90px]"
-        >
-          <option value="read-only">Read-only</option>
-          <option value="current">Current</option>
-          <option value="full-access">Full access</option>
-        </ComposerSelect>
-
-        <ComposerSelect
-          icon={
-            <svg viewBox="0 0 24 24" fill="none">
-              <path d="M8.5 4.5a3.5 3.5 0 0 0-3.46 4.03A4 4 0 0 0 6 16.5h2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
-              <path d="M15.5 4.5a3.5 3.5 0 0 1 3.46 4.03A4 4 0 0 1 18 16.5h-2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
-              <path d="M9 12h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
-              <path d="M12 12v6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
-            </svg>
-          }
-          label="Thinking mode"
-          value={props.selectedEffort() ?? ""}
-          onChange={(value) => props.onSelectEffort(value)}
-          width="w-[60px]"
-        >
-          <Show when={props.reasoningOptions().length === 0}>
-            <option value="">Default</option>
-          </Show>
-          <For each={props.reasoningOptions()}>
-            {(effort) => <option value={effort}>{effort}</option>}
-          </For>
-        </ComposerSelect>
-
-        <ComposerSelect
-          icon={
-            <svg viewBox="0 0 24 24" fill="none">
-              <path d="M12 4l7 3v5c0 4.5-3 7.5-7 8-4-0.5-7-3.5-7-8V7l7-3z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" />
-              <path d="M9.5 12.5l1.8 1.8 3.7-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-          }
-          label="Approval"
-          value={approvalPolicy()}
-          onChange={(value) => handleApprovalChange(value as ApprovalPolicy)}
-          width="w-[85px]"
-        >
-          <option value="on-request">On request</option>
-          <option value="never">Never</option>
-          <option value="unless-allow-listed">Unless trusted</option>
-        </ComposerSelect>
+          </button>
+          <button
+            type="button"
+            class="flex h-6 w-[18px] items-center justify-center rounded-md bg-[var(--icon-strong-base)] text-[var(--icon-invert-base)] transition-colors hover:bg-[var(--icon-strong-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+            onClick={handleSend}
+            disabled={props.disabled || (!props.value().trim() && !props.canStop)}
+            aria-label={props.canStop ? "Stop" : "Send"}
+          >
+            <Show when={props.canStop} fallback={
+              <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <path d="M12 5v14M12 5l-4 4M12 5l4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            }>
+              <span class="h-2.5 w-2.5 rounded-sm bg-current" aria-hidden />
+            </Show>
+          </button>
+        </div>
       </div>
     </footer>
   );
 }
 
 function ComposerSelect(props: {
-  icon: any;
+  icon?: any;
   label: string;
   value: string;
   onChange: (value: string) => void;
-  width: string;
+  width?: string;
   children: any;
 }) {
   return (
-    <div class="flex items-center gap-1.5 rounded-md bg-surface-raised-base px-2 py-1 hover:bg-surface-raised-base-hover transition-colors">
-      <span class="flex size-4 text-icon-base shrink-0" aria-hidden>
-        {props.icon}
-      </span>
+    <div class="group/select inline-flex h-6 items-center gap-1 rounded-md border-transparent bg-transparent px-1.5 text-xs font-medium text-[var(--text-strong)] transition-colors hover:bg-[var(--surface-raised-base-hover)]">
+      <Show when={props.icon}>
+        <span class="flex h-4 w-4 items-center justify-center text-[var(--icon-base)]" aria-hidden>
+          {props.icon}
+        </span>
+      </Show>
       <select
-        class="min-w-0 cursor-pointer border-none bg-transparent text-12-regular text-text-base focus:text-text-strong focus:outline-none appearance-none pr-4"
-        style={{
-          "background-image": "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.5)' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E\")",
-          "background-position": "right 0 center",
+        class="cursor-pointer appearance-none border-none bg-transparent pr-4 text-xs font-medium text-inherit outline-none"
+        style={{ 
+          "background-image": "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.5)' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E\")",
+          "background-position": "right center",
           "background-repeat": "no-repeat",
+          ...(props.width ? { width: props.width } : {})
         }}
         aria-label={props.label}
         value={props.value}
